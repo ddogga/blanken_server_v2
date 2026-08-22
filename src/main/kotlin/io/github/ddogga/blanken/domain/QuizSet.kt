@@ -1,0 +1,74 @@
+package io.github.ddogga.blanken.domain
+
+import jakarta.persistence.CascadeType
+import jakarta.persistence.Column
+import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
+import jakarta.persistence.OneToMany
+import jakarta.persistence.Table
+
+@Entity
+@Table(name = "quiz_set")
+class QuizSet(
+
+    /** owner 정보는 QuizSet 생성 시점에 있어야 하므로 생성자 안*/
+	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+	@JoinColumn(name = "owner_id", nullable = false)
+	var owner: User,
+
+	@Column(name = "title", nullable = false, length = 100)
+	var title: String,
+
+	@Column(name = "description", length = 500)
+	var description: String? = null,
+
+	@Enumerated(EnumType.STRING)
+	@Column(name = "visibility", nullable = false, length = 20)
+	var visibility: Visibility = Visibility.PUBLIC,
+
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
+	val id: Long? = null,
+
+) : BaseTimeEntity() {
+
+	@Column(name = "like_count", nullable = false)
+	var likeCount: Int = 0
+		protected set
+
+	@OneToMany(mappedBy = "quizSet", cascade = [CascadeType.ALL], orphanRemoval = true)
+	private val mutableQuizzes: MutableList<Quiz> = mutableListOf()
+
+	val quizzes: List<Quiz> get() = mutableQuizzes
+
+	@OneToMany(mappedBy = "quizSet", cascade = [CascadeType.ALL], orphanRemoval = true)
+	private val mutableCategories: MutableList<QuizSetCategory> = mutableListOf()
+
+	val categories: List<QuizSetCategory> get() = mutableCategories
+
+	fun addQuiz(quiz: Quiz) {
+		mutableQuizzes.add(quiz)
+		quiz.quizSet = this
+	}
+
+	fun removeQuiz(quiz: Quiz) {
+		mutableQuizzes.remove(quiz)
+	}
+
+	fun addCategory(category: Category) {
+		if (mutableCategories.any { it.category.id == category.id }) return
+		mutableCategories.add(QuizSetCategory(quizSet = this, category = category))
+	}
+
+	fun removeCategory(category: Category) {
+		mutableCategories.removeIf { it.category.id == category.id }
+	}
+}
