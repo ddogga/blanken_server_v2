@@ -33,6 +33,7 @@ M1 진행 중 — 엔티티 계층까지 완료.
 | API 문서 | springdoc-openapi 3.1.0 — `/swagger-ui.html` |
 | 검증 | `spring-boot-starter-validation` — 요청 DTO에 `@Valid` |
 | 비밀번호 해싱 | `spring-security-crypto`의 BCrypt (**starter-security 아님** — 필터체인 미적용) |
+| 테스트 | JUnit5 + MockK 1.14.11 + springmockk 5.0.1 (둘 다 부트 BOM 미관리 — 버전 직접 명시) |
 | 패키지 루트 | `io.github.ddogga.blanken` |
 
 기존 코드
@@ -41,7 +42,8 @@ M1 진행 중 — 엔티티 계층까지 완료.
 - `repository/` — `UserRepository`
 - `service/` — `UserService`
 - `controller/` — `UserController`, `TestController`
-- `dto/user/`, `dto/common/PageResponse`, `exception/` (도메인 예외 + `GlobalExceptionHandler`)
+- `dto/user/`, `dto/common/PageResponse`, `exception/` (`ErrorCode` + `BusinessException` + 도메인 예외 + `GlobalExceptionHandler`)
+- 테스트 — `UserServiceTest`(9), `UserControllerTest`(9). User CRUD 기준선이므로 이후 도메인은 이 구조를 따른다.
 
 **계층 구조**: `controller` → `service` → `repository` → `domain`. 타입별 패키지 분리.
 엔티티는 컨트롤러 밖으로 나가지 않는다 — 요청·응답은 항상 `dto`.
@@ -150,7 +152,62 @@ M1 진행 중 — 엔티티 계층까지 완료.
 
 ---
 
-## 5. 동시성 제어 — 이 프로젝트의 핵심 축
+## 5. 테스트 코드 작성 기준
+
+> 판단이 애매하면 **임의로 정하지 말고 작성 전에 질문한다.** 테스트를 과잉 생성하는 것보다 확인하고 진행하는 편이 낫다. 질문이 필요한 상황은 5.6에 정리해 두었다.
+
+### 5.1 테스트 스택
+- **JUnit5 + MockK**. 슬라이스 테스트는 `@WebMvcTest`(Controller), 필요 시 `@DataJpaTest`(Repository).
+- **Kotest 전환 가능성을 염두에 둔다.** 특정 러너에 강하게 결합된 구조는 피하고, given-when-then의 논리적 구분을 주석이나 구조로 드러내 전환 시 마찰을 줄인다.
+
+- `@WebMvcTest`에서 빈 교체는 **springmockk의 `@MockkBean`**을 쓴다 (부트 기본 `@MockitoBean`은 Mockito 전용). 5.0.1 + 부트 4.1 조합은 `UserControllerTest`로 동작 확인 완료.
+
+> **주의**: 부트 4에서 테스트 애너테이션 패키지가 옮겨졌다. `@WebMvcTest`는 `org.springframework.boot.test.autoconfigure.web.servlet`이 아니라 **`org.springframework.boot.webmvc.test.autoconfigure`**다. 부트 3 기준 예제를 그대로 붙이면 `Unresolved reference`가 난다.
+
+### 5.2 계층별 전략
+| 계층 | 방침 |
+|---|---|
+| Controller / Service | 하나의 로직에 대해 **기본적으로 작성한다** |
+| Repository | **QueryDSL 등 쿼리 빌더가 필요한 복잡한 쿼리일 때만.** 단순 파생 쿼리(`findById`, `findByEmail` 등)는 작성하지 않는다 |
+
+### 5.3 작성 생략 기준
+- ID 단건 조회처럼 **분기·가공 없이 위임만 하는 자명한 로직**은 테스트하지 않는다.
+- 1차 판단 기준은 **"성공 케이스를 테스트할 가치가 있는가"**. 성공 케이스조차 자명하면 네거티브도 만들지 않는다.
+
+### 5.4 네거티브 테스트 추가 기준
+**실패를 내 코드가 직접 책임지는가**로 판단한다.
+
+**추가한다**
+- 도메인 규칙 위반으로 **내가 예외를 던지는 분기** (중복 이메일, 잔액 부족 등)
+- 조회 실패를 도메인 예외로 변환하는 지점 (`orElseThrow` 등)
+- 예외 → HTTP status/code 변환이 올바른지 (Controller 계층)
+- 입력 검증 실패가 단순 거절이 아니라 **별도 분기·흐름을 만드는** 경우
+
+**추가하지 않는다**
+- Bean Validation 애너테이션 자체의 동작 (`@NotNull`, `@Email` 등 — 프레임워크 보장 영역)
+- 도메인 예외로 변환하지 않는 순수 DB 제약 위반 (FK/UNIQUE)
+- Kotlin 널 세이프티 등 컴파일 단계에서 걸리는 것
+
+원칙: **성공 케이스가 있는 로직에 한해**, "내가 명시적으로 처리한 실패 분기"가 있으면 네거티브 테스트를 짝으로 붙인다.
+
+### 5.5 테스트명 규칙
+- **한글**로 쓰고, 띄어쓰기는 `_`로 구분한다. **"조건 + 기대 결과"**가 드러나야 한다.
+
+```
+유저를_정상적으로_생성한다
+존재하지_않는_유저_조회시_USER_NOT_FOUND_예외를_던진다
+중복된_이메일로_가입시_DUPLICATE_EMAIL_예외를_던진다
+```
+
+### 5.6 판단이 애매할 때 — 질문할 것
+아래는 기준만으로 갈리지 않으므로 **작성 전에 확인한다.**
+- 특정 로직이 "자명해서 생략"(5.3) 대상인지 경계가 모호할 때
+- Repository 테스트가 필요한 "복잡한 쿼리"(5.2)인지 판단이 서지 않을 때
+- 네거티브 테스트(5.4)를 붙일지 기준만으로 가려지지 않을 때
+
+---
+
+## 6. 동시성 제어 — 이 프로젝트의 핵심 축
 
 > **Redis 싱글스레드는 "명령 하나의 원자성"만 보장한다. 여러 명령에 걸친 논리적 원자성은 UNIQUE 제약·SETNX·Lua 스크립트로 별도 설계한다.**
 
@@ -164,7 +221,7 @@ M1 진행 중 — 엔티티 계층까지 완료.
 
 ---
 
-## 6. 데이터 모델 초안
+## 7. 데이터 모델 초안
 
 **RDBMS**
 M1 엔티티는 `io.github.ddogga.blanken.domain` 패키지에 **구현 완료**.
@@ -212,7 +269,7 @@ battle:room:{roomId}:count
 
 ---
 
-## 7. 마일스톤
+## 8. 마일스톤
 
 1. **M1 — 기반**: 인증 · Quiz Set CRUD · 학습 풀이(클라 채점·재시도/포기·오답 재풀이) · 히스토리 2테이블
 2. **M2 — 소셜**: 좋아요(Redis 카운터·UNIQUE·DB 정합성) · 검색(서버 필터링·좋아요 병합) · 팔로우 · 알림(MQ + 알림 서비스 + FCM)
@@ -223,7 +280,7 @@ battle:room:{roomId}:count
 
 ---
 
-## 8. 미결정 사항
+## 9. 미결정 사항
 
 구현에 착수하기 전에 확인이 필요한 것들. 결정되면 이 문서를 갱신할 것.
 
