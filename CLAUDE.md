@@ -23,7 +23,7 @@
 
 ## 2. 현재 저장소 상태
 
-거의 뼈대만 있는 초기 상태 (M1 시작 전).
+M1 진행 중 — 엔티티 계층까지 완료.
 
 | 항목 | 값 |
 |---|---|
@@ -31,11 +31,25 @@
 | 프레임워크 | Spring Boot 4.1.0 (`spring-boot-starter-webmvc`, `-data-jpa`) |
 | DB | PostgreSQL (`ddl-auto: update`, `open-in-view: false`) |
 | API 문서 | springdoc-openapi 3.1.0 — `/swagger-ui.html` |
+| 검증 | `spring-boot-starter-validation` — 요청 DTO에 `@Valid` |
+| 비밀번호 해싱 | `spring-security-crypto`의 BCrypt (**starter-security 아님** — 필터체인 미적용) |
 | 패키지 루트 | `io.github.ddogga.blanken` |
 
-기존 코드: `BlankenApplication.kt`, `config/OpenApiConfig.kt`, `controller/TestController.kt` 뿐.
+기존 코드
+- `config/` — `OpenApiConfig`, `JpaAuditingConfig`, `PasswordEncoderConfig`
+- `domain/` — `BaseTimeEntity`, `User`, `QuizSet`, `Quiz`, `Category`, `QuizSetCategory`, `QuizSetLike`, `StudyHistory`, `StudyHistoryDetail`, `Visibility`
+- `repository/` — `UserRepository`
+- `service/` — `UserService`
+- `controller/` — `UserController`, `TestController`
+- `dto/user/`, `dto/common/PageResponse`, `exception/` (도메인 예외 + `GlobalExceptionHandler`)
+
+**계층 구조**: `controller` → `service` → `repository` → `domain`. 타입별 패키지 분리.
+엔티티는 컨트롤러 밖으로 나가지 않는다 — 요청·응답은 항상 `dto`.
 
 **아직 없는 것** (필요해지면 추가): Spring Security, Redis(`spring-boot-starter-data-redis`), WebSocket, 메시지큐 클라이언트, 마이그레이션 도구(Flyway 등), Docker/K8s 매니페스트.
+
+> **주의**: `ddl-auto: update`는 M1 한정. 컬럼 삭제·타입 변경을 반영하지 못하고 운영에 쓸 수 없다. 스키마가 굳으면 Flyway로 이전할 것.
+> Redis 의존성이 아직 없어 **진행 상태·이어풀기는 구현 불가** — 학습 풀이 API 착수 전에 `spring-boot-starter-data-redis`를 추가해야 한다 (4.3이 Redis 전용으로 결정되면서 M1 필수 의존성이 되었다).
 
 ---
 
@@ -63,16 +77,25 @@
 - **"포기(give-up)"를 눌러야만 오답으로 기록**된다.
 - 따라서 **오답 재풀이 대상 = 포기한 문제뿐**이다. (`study_history_detail.gave_up`)
 
-### 4.3 학습 히스토리는 2테이블로 분리
-- `quiz_set_progress` — 유저-퀴즈셋당 **1행, 가변**. `status`(IN_PROGRESS / COMPLETED). "진행중/완료 목록"은 같은 테이블을 status로 필터.
+### 4.3 진행 상태는 Redis, 학습 기록은 RDB
+가변 상태와 불변 기록을 저장소 자체로 분리한다.
+
+- **진행 상태(progress) — Redis에만 존재한다. RDB 테이블 없음.**
+  `study:session:{userId}:{quizSetId}` (Hash, TTL 24h). 어디까지 풀었는지·현재 문제·포기한 문제 목록 등 세션 동안만 유효한 값.
+  PRD 초안의 `quiz_set_progress` 테이블은 **채택하지 않는다** (2026-08-22 결정).
 - `study_history` — 완주할 때마다 **append-only, 불변**. 점수·오답 목록·완료 시각.
   최근 1건 덮어쓰기가 아니라 **누적**하는 이유: 성장 추이·오답 변화 추적이 학습 앱의 핵심 가치이고, 불변 이벤트 누적이 갱신 충돌 없이 통계에 유리하기 때문.
+
+**이 결정에서 따라오는 조회 규칙**
+- **"진행중 목록" = Redis 키 스캔이 아니라** 유저별 진행중 세션 인덱스(예: `study:active:{userId}` Set)를 함께 유지해 조회한다. 운영 중 `KEYS` 금지, 필요하면 `SCAN`.
+- **"완료 목록" = `study_history`에서 유도**한다 (유저의 distinct `quiz_set_id`). 별도 status 컬럼이 없으므로 "완주한 적 있음"이 곧 완료다.
+- TTL이 지나 세션이 사라지면 진행중 목록에서도 사라진다. 이는 버그가 아니라 4.4의 이어풀기 정책과 같은 규칙이다.
 
 ### 4.4 이어풀기 — TTL이 곧 정책
 - 중단한 학습 세션은 **하루 이내에만** 이어풀기 가능. 지나면 처음부터.
 - 근거는 자원 절약이 아니라 **학습적 판단**: 오래 방치한 뒤의 이어풀기는 복습 효과가 낮다.
 - 구현: 진행 세션을 Redis TTL 24h로 저장 → 별도 만료 정리 로직 불필요, 신뢰할 수 없는 "이탈 감지" 이벤트에 의존하지 않음.
-- **완주 시에만 RDB flush**(멱등). 미완료 세션은 TTL로 자연 소멸.
+- **완주 시에만 RDB flush**(멱등) — flush 대상은 `study_history` + `study_history_detail`뿐이다. 미완료 세션은 TTL로 자연 소멸하며 RDB에 어떤 흔적도 남기지 않는다.
 
 ### 4.5 좋아요
 - **정합성 기준은 DB, 평상시 읽기·쓰기는 Redis.** Redis 장애 시 DB에서 복구 가능해야 한다.
@@ -102,12 +125,38 @@
 
 ---
 
+### 4.10 API 규약 (User CRUD에서 확립, 이후 도메인도 따를 것)
+- **응답 상태**: 생성 `201` + `Location`, 본문 없는 성공 `204`, 조회·수정 `200`.
+- **에러 응답**은 `ErrorResponse(code, message, fieldErrors?)` 하나로 통일. `code`는 클라이언트 분기용, `message`는 사람이 읽는 값.
+  상태·코드·메시지의 단일 출처는 **`exception/ErrorCode` enum**이다. 응답은 직접 생성하지 말고 `ErrorResponse.of(errorCode, fieldErrors?)`로 만든다.
+  **코드 체계**: `앞자리 알파벳(도메인) + 3자리 순번`. `C`=Common(횡단), `U`=User, `A`=Auth. 순번은 도메인별 `001`부터, **`999`는 서버 오류·기타로 예약**.
+
+  | enum | code | status |
+  |---|---|---|
+  | `VALIDATION_FAILED` | `C001` | 400 |
+  | `DATA_INTEGRITY_VIOLATION` | `C002` | 409 |
+  | `INTERNAL_ERROR` | `C999` | 500 (예약 — 아직 핸들러 없음) |
+  | `USER_NOT_FOUND` | `U001` | 404 |
+  | `DUPLICATE_EMAIL` | `U002` | 409 |
+  | `INVALID_PASSWORD` | `A001` | 400 |
+
+- **도메인 예외는 `BusinessException(errorCode, detail?)`을 상속**한다. `GlobalExceptionHandler`는 이 타입 하나만 잡으므로 예외를 추가해도 핸들러를 건드릴 일이 없다.
+  **클라이언트에는 `ErrorCode.message`(표준 문구)만 나간다.** `detail`(`(id=1)`, `(email=...)` 등 진단용 맥락)은 예외의 `message`에 담겨 **로그로만** 남는다 — 내부 식별자가 응답으로 새지 않게 하기 위해서다.
+- **페이징 응답은 `PageResponse<T>`로 감싼다.** `Page`(`PageImpl`)를 그대로 직렬화하면 JSON 구조가 Spring Data 내부 구현에 묶여 버전 간 안정성이 깨진다.
+- **멱등하지 않은 변경은 PUT이 아니라 POST.** (예: 비밀번호 변경은 현재 비밀번호 대조가 있어 재요청 시 실패 → `POST /{id}/password`)
+- **부분 수정은 PATCH.**
+- **비밀번호는 어떤 응답에도 담지 않는다.** 해시라도 마찬가지.
+- **인증 미도입 상태의 부채**: `{id}` 경로만으로 대상을 지정하므로 현재 누구나 남의 계정을 수정·삭제할 수 있다. 인증 도입 시 소유권 검사를 넣거나 `/api/users/me` 형태로 바꾸고, 유저 전체 목록 조회는 제한/제거한다. (`UserController` KDoc에 명시해 둠)
+
+---
+
 ## 5. 동시성 제어 — 이 프로젝트의 핵심 축
 
 > **Redis 싱글스레드는 "명령 하나의 원자성"만 보장한다. 여러 명령에 걸친 논리적 원자성은 UNIQUE 제약·SETNX·Lua 스크립트로 별도 설계한다.**
 
 | 지점 | 문제 | 해법 |
 |---|---|---|
+| 이메일 중복 가입 | check-then-act 경쟁 | `users.email` **UNIQUE 제약**. `existsByEmail` 선검사는 메시지 품질용일 뿐 보장이 아니다 — `UserService.create`는 `saveAndFlush`로 즉시 INSERT 후 `DataIntegrityViolationException`을 `DuplicateEmailException`으로 변환한다 (`save`만 하면 flush가 커밋 시점으로 밀려 catch 밖에서 터진다) |
 | 좋아요 중복 | check-then-act 경쟁 | `(user_id, quizset_id)` **UNIQUE 제약** — DB가 원자적으로 거부 |
 | 좋아요 카운트 | 갱신 유실 | Redis 원자 `INCR` + 멱등 flush |
 | 대결 선착순 | 최초 정답자 1인 확정 | `winner:{roomId}:{questionId}` 에 `SETNX` — first-writer-wins |
@@ -118,26 +167,41 @@
 ## 6. 데이터 모델 초안
 
 **RDBMS**
+M1 엔티티는 `io.github.ddogga.blanken.domain` 패키지에 **구현 완료**.
+
 ```
-user                  (id, email, password_hash, nickname, created_at)
-follow                (follower_id, followee_id)
-quiz_set              (id, owner_id, title, description, visibility, like_count, created_at)
-quiz_set_category     (quiz_set_id, category_id)          -- 다중 카테고리 매핑
+users                 (id, email, password, nickname, created_at, updated_at)
+quiz_set              (id, owner_id, title, description, visibility, like_count, created_at, updated_at)
+category              (id, name)                          -- name UNIQUE
+quiz_set_category     (quiz_set_id, category_id)          -- 복합 PK, 명시적 조인 엔티티
 quiz                  (id, quiz_set_id, sentence, answer_word, hint)
-like                  (user_id, quiz_set_id)              -- UNIQUE(user_id, quiz_set_id)
-quiz_set_progress     (user_id, quiz_set_id, status, ...) -- 유저-퀴즈셋당 1행
-study_history         (id, user_id, quiz_set_id, score, solved_at)  -- append-only
+quiz_set_like         (id, user_id, quiz_set_id, created_at, updated_at)  -- UNIQUE(user_id, quiz_set_id)
+study_history         (id, user_id, quiz_set_id, score, total_count, correct_count, solved_at)  -- append-only
 study_history_detail  (id, history_id, quiz_id, gave_up)
+
+-- 이후 마일스톤
+follow                (follower_id, followee_id)
 battle_result / battle_result_player
 ```
-※ `like`는 PostgreSQL 예약어이므로 테이블명 인용/변경 필요.
+
+**테이블·컬럼 명명 주의**
+- `user`, `like`는 PostgreSQL 예약어 → `users`, `quiz_set_like`로 사용한다.
+- **`quiz_set_progress` 테이블은 존재하지 않는다.** 진행 상태는 Redis 전용이다 (4.3 참고).
+
+**공통 규약**
+- `BaseTimeEntity`(`@MappedSuperclass`) — `created_at` / `updated_at`을 Spring Data JPA Auditing으로 채운다. `@EnableJpaAuditing`은 `config/JpaAuditingConfig.kt`.
+- 모든 `@ManyToOne`은 **`FetchType.LAZY` 명시**. 기본값 EAGER는 N+1의 주원인.
+- `visibility`는 `@Enumerated(EnumType.STRING)` — ordinal은 enum 순서가 바뀌면 데이터가 깨진다.
+- 컬렉션은 내부 `MutableList` + 읽기 전용 `List` 노출 + `addXxx()` 로 양방향 연관 세팅.
+- `quiz_set.like_count`는 `protected set` — 정합성 기준은 DB지만 평상시 증감은 Redis이고 이 컬럼은 배치 flush로만 갱신된다.
 
 **Redis 키**
 ```
 session:{token}
 like:count:{quizSetId}
 ranking:quizset                          (ZSET)
-study:session:{userId}:{quizSetId}       (Hash, TTL 24h)  -- 이어풀기
+study:session:{userId}:{quizSetId}       (Hash, TTL 24h)  -- 진행 상태 = 이어풀기 세션
+study:active:{userId}                    (Set)            -- "진행중 목록" 조회용 인덱스
 battle:room:{roomId}
 battle:score:{roomId}                    (ZSET)
 winner:{roomId}:{questionId}             (SETNX)
@@ -166,6 +230,7 @@ battle:room:{roomId}:count
 - **인증 방식** — JWT vs Redis 세션. M1 첫 작업이고 이후 모든 API와 WebSocket 핸드셰이크 인증에 영향. Spring Security 의존성이 아직 없다.
 - **퀴즈셋당 평균 문제 수** — 이어풀기와 Redis 도입 정당성에 직결. 10개 남짓이면 이어풀기 가치가 약해지고, 50~100개면 Redis 세션이 확실히 정당화된다.
 - **빈 퀴즈셋 처리** — 2단계 생성 플로우의 부작용. draft 상태를 `quiz_set`에 넣을지를 스키마 확정 전에 정해야 한다.
+- **Redis 장애 시 진행 상태 정책** — 진행 상태가 Redis 전용이 되면서 Redis 유실 = 진행중 세션 전멸이다. 애초에 24h 안에 사라질 값이라 감수 가능한 손실로 보지만, 사용자 안내 문구는 필요하다.
 - **이어풀기 만료 기준** — 24h 롤링 vs 자정 기준 / 이어풀기 시작 시 TTL 갱신 여부 / 만료 안내 문구.
 - **학습 기록 상한** — 유저·퀴즈셋당 기록 상한 또는 오래된 기록 요약 정책 (초기엔 무제한 append로 시작 가능). 오답 재풀이 대상 범위(최근 시도의 오답 vs 누적 포기 문제 전체).
 - **채점 UX 세부** — 실시간 대조 vs 확인 시 대조, 조기 정답 확정 처리.

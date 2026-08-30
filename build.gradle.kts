@@ -22,6 +22,10 @@ repositories {
 dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	implementation("org.springframework.boot:spring-boot-starter-validation")
+	// 비밀번호 해싱(BCrypt)만 쓰기 위한 단독 라이브러리.
+	// spring-boot-starter-security 가 아니므로 필터체인·자동 로그인 설정이 붙지 않는다.
+	implementation("org.springframework.security:spring-security-crypto")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
