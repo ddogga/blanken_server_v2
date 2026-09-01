@@ -3,6 +3,7 @@ package io.github.ddogga.blanken.exception
 import org.slf4j.LoggerFactory
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -33,6 +34,21 @@ class GlobalExceptionHandler {
 			)
 		}
 		return ErrorResponse.of(ErrorCode.VALIDATION_FAILED, fieldErrors)
+	}
+
+	/**
+	 * 요청 본문 자체를 읽지 못한 경우 — 깨진 JSON, 필수 필드 누락, 잘못된 enum 값 등.
+	 *
+	 * Bean Validation 은 역직렬화가 **성공한 뒤에** 돈다. Kotlin 논-널 필드가 비어 있으면
+	 * `@Valid` 가 돌기도 전에 Jackson 이 먼저 실패하므로, 이 핸들러가 없으면
+	 * 스프링 기본 에러 바디(`timestamp`/`status`/`error`/`path`)가 나가 응답 형식이 두 개가 된다.
+	 *
+	 * 어느 필드가 문제인지는 파서 예외 메시지에 내부 타입 정보가 섞여 있어 그대로 내보내지 않고 로그로만 남긴다.
+	 */
+	@ExceptionHandler(HttpMessageNotReadableException::class)
+	fun handleNotReadable(e: HttpMessageNotReadableException): ResponseEntity<ErrorResponse> {
+		log.warn("요청 본문을 읽을 수 없음", e)
+		return ErrorResponse.of(ErrorCode.VALIDATION_FAILED)
 	}
 
 	/**
