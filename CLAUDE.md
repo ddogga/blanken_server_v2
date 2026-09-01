@@ -114,6 +114,11 @@ M1 진행 중 — 엔티티 계층까지 완료.
 - 2단계 생성 플로우: ① 이름·설명·카테고리로 퀴즈셋 생성(POST) → ② 수정 페이지에서 퀴즈 추가/삭제/수정.
 - 퀴즈 수정은 PUT. 클라이언트는 **변경이 발생했을 때만** 수정 버튼을 활성화해 호출한다.
 - 퀴즈 생성 입력: 정답 단어가 포함된 영어 문장 + 정답 단어 + (선택) 힌트.
+- **퀴즈셋에는 카테고리가 최소 1개 필요하다** (2026-09-01 결정). 카테고리 없는 퀴즈셋은 §4.6 카테고리 필터 검색에 영원히 잡히지 않아, 만들어지는 순간 발견될 수 없는 데이터가 된다.
+  이중으로 막는다 — 사용자 입력은 `QuizSetCreateRequest.categoryIds` 의 `@Size(min = 1)` 이 400 으로 거르고, 그 뒤는 도메인이 스스로 지킨다.
+  - `QuizSet` 의 **기본 생성자는 `private`** 이고 **`QuizSet.create(owner, title, description, visibility, categories)` 팩터리만 열려 있다.** 카테고리는 `addCategory` 로 생성 후에 붙는 구조라 생성자 파라미터로는 강제할 수 없어서다.
+  - `removeCategory` 는 **마지막 한 개를 지우려 하면 거부**한다.
+  - 이 두 곳이 던지는 `IllegalArgumentException` 은 사용자 입력이 아니라 **서버 코드의 실수**를 잡는 방어선이다 (사용자 경로는 이미 400 으로 걸러진 뒤다).
 
 ### 4.8 팔로우 + 알림 팬아웃
 - 생성 API는 `QuizSetCreated` 이벤트만 발행하고 **즉시 응답**. 알림 서비스 컨슈머가 팔로워 목록을 조회해 알림 생성/전송, 실패 시 재시도(DLQ).
@@ -140,10 +145,16 @@ M1 진행 중 — 엔티티 계층까지 완료.
   | `INTERNAL_ERROR` | `C999` | 500 (예약 — 아직 핸들러 없음) |
   | `USER_NOT_FOUND` | `U001` | 404 |
   | `DUPLICATE_EMAIL` | `U002` | 409 |
+  | `CATEGORY_NOT_FOUND` | `G001` | 404 |
   | `INVALID_PASSWORD` | `A001` | 400 |
+
+  `G` = cateGory. `C` 는 Common 이 선점해 알파벳이 겹쳐서다.
 
 - **도메인 예외는 `BusinessException(errorCode, detail?)`을 상속**한다. `GlobalExceptionHandler`는 이 타입 하나만 잡으므로 예외를 추가해도 핸들러를 건드릴 일이 없다.
   **클라이언트에는 `ErrorCode.message`(표준 문구)만 나간다.** `detail`(`(id=1)`, `(email=...)` 등 진단용 맥락)은 예외의 `message`에 담겨 **로그로만** 남는다 — 내부 식별자가 응답으로 새지 않게 하기 위해서다.
+- **요청 본문을 읽지 못한 경우(`HttpMessageNotReadableException`)도 같은 형식으로 내보낸다** — 깨진 JSON, 필수 필드 누락, 잘못된 enum 값.
+  Bean Validation 은 역직렬화가 **성공한 뒤에** 돌기 때문에, Kotlin 논-널 필드가 비면 `@Valid` 가 돌기도 전에 Jackson 이 먼저 실패한다.
+  이 핸들러가 없으면 스프링 기본 에러 바디(`timestamp`/`status`/`error`/`path`)가 나가 **클라이언트가 에러 형식 두 개를 파싱**해야 한다. `VALIDATION_FAILED`(C001)로 통일하되, 파서 메시지에는 내부 타입 정보가 섞여 있어 `fieldErrors` 없이 표준 메시지만 내보낸다.
 - **페이징 응답은 `PageResponse<T>`로 감싼다.** `Page`(`PageImpl`)를 그대로 직렬화하면 JSON 구조가 Spring Data 내부 구현에 묶여 버전 간 안정성이 깨진다.
 - **멱등하지 않은 변경은 PUT이 아니라 POST.** (예: 비밀번호 변경은 현재 비밀번호 대조가 있어 재요청 시 실패 → `POST /{id}/password`)
 - **부분 수정은 PATCH.**
