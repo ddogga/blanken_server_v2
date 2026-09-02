@@ -4,6 +4,7 @@ import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.domain.Visibility
 import io.github.ddogga.blanken.dto.category.CategoryResponse
 import io.swagger.v3.oas.annotations.media.Schema
+import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
@@ -40,6 +41,33 @@ data class QuizSetCreateRequest(
 	@field:Schema(description = "카테고리 ID 목록 (최소 1개)", example = "[1, 3]")
 	@field:Size(min = 1, message = "카테고리는 최소 1개 이상 선택해야 합니다.")
 	val categoryIds: List<Long> = emptyList(),
+)
+
+
+@Schema(description = "퀴즈셋 수정 요청")
+data class QuizSetUpdateRequest(
+
+    @field:Schema(description = "제목", example = "new quiz set")
+    @field:NotBlank(message = "제목은 필수 입니다.")
+    @field:Size(max = 100, message = "제목은 100자를 넘을 수 없습니다.")
+    val title: String,
+
+    @field:Schema(description = "설명", example = "토익 빈출 동사 30선")
+    @field:Size(max = 500, message = "설명은 500자를 넘을 수 없습니다.")
+    val description: String? = null,
+
+    @field:Schema(description = "공개 범위", example = "PUBLIC")
+    @field:NotNull(message = "공개 범위는 필수 입니다.")
+    val visibility: Visibility = Visibility.PUBLIC,
+
+    @field:Schema(description = "카테고리 ID 목록 (최소 1개)", example = "[1, 3]")
+    @field:Size(min = 1, message = "카테고리는 최소 1개 이상 선택해야 합니다.")
+    val categoryIds: List<Long> = emptyList(),
+
+    @field:Schema(description = "퀴즈 목록")
+    @field:Valid
+    @field:Size(max = 100, message = "퀴즈는 하나의 퀴즈셋에 100개 이하로 생성 가능합니다.")
+    val quizzes: List<QuizRequest> = emptyList(),
 )
 
 /**
@@ -82,6 +110,9 @@ data class QuizSetResponse(
 	@field:Schema(description = "카테고리 목록")
 	val categories: List<CategoryResponse>,
 
+    @field:Schema(description = "퀴즈 목록")
+    val quizzes: List<QuizResponse>,
+
 	@field:Schema(description = "생성 시각")
 	val createdAt: Instant,
 
@@ -99,6 +130,7 @@ data class QuizSetResponse(
 			likeCount = quizSet.likeCount,
 			quizCount = quizSet.quizzes.size,
 			categories = quizSet.categories.map { CategoryResponse.from(it.category) },
+            quizzes = quizSet.quizzes.map { QuizResponse.from(it) },
 			createdAt = quizSet.createdAt,
 			updatedAt = quizSet.updatedAt,
 		)

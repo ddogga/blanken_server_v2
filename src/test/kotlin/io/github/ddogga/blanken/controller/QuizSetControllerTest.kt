@@ -124,6 +124,7 @@ class QuizSetControllerTest(
 		likeCount = 0,
 		quizCount = 0,
 		categories = listOf(CategoryResponse(id = 1L, name = "토익")),
+		quizzes = emptyList(),
 		createdAt = CREATED_AT,
 		updatedAt = CREATED_AT,
 	)

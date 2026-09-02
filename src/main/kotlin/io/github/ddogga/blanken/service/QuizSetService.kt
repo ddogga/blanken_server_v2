@@ -4,6 +4,7 @@ import io.github.ddogga.blanken.domain.Category
 import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
+import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.CategoryRepository
@@ -45,6 +46,13 @@ fun create(request: QuizSetCreateRequest): QuizSetResponse {
 
         // QuizSetCategory의 cascade 전략이 ALL이기 때문에 별도의 save 호출 없어도 자동 insert
         return QuizSetResponse.from(quizSetRepository.save(quizSet))
+    }
+
+
+    @Transactional
+    fun update(quizSetId: Long, request: QuizSetUpdateRequest): QuizSetResponse? {
+
+        return null;
     }
 
 
