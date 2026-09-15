@@ -6,6 +6,7 @@ import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
+import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.CategoryRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
@@ -13,8 +14,6 @@ import io.github.ddogga.blanken.repository.UserRepository
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-
-
 
 @Service
 @Transactional(readOnly = true)
@@ -24,9 +23,8 @@ class QuizSetService(
     private val categoryRepository: CategoryRepository,
 ) {
 
-
     @Transactional
-fun create(request: QuizSetCreateRequest): QuizSetResponse {
+    fun create(request: QuizSetCreateRequest): QuizSetResponse {
 
         val owner = userRepository.findByIdOrNull(request.ownerId)
             ?: throw UserNotFoundException(request.ownerId)
@@ -50,10 +48,19 @@ fun create(request: QuizSetCreateRequest): QuizSetResponse {
 
 
     @Transactional
-    fun update(quizSetId: Long, request: QuizSetUpdateRequest): QuizSetResponse? {
+    fun update(quizSetId: Long, request: QuizSetUpdateRequest): QuizSetResponse {
 
-        return null;
+        val quizSet = quizSetRepository.findWithCategoriesById(quizSetId)
+            ?: throw QuizSetNotFoundExceptions(quizSetId)
+
+        quizSet.update(request)
+
+        val newCategories = categoryRepository.findAllById(request.categoryIds)
+        quizSet.updateCategories(newCategories)
+
+        return QuizSetResponse.from(quizSet)
     }
+
 
 
     private fun findCategoriesByIds(categoryIds : List<Long>) : List<Category>{

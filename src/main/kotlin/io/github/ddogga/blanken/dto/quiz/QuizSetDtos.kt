@@ -4,7 +4,6 @@ import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.domain.Visibility
 import io.github.ddogga.blanken.dto.category.CategoryResponse
 import io.swagger.v3.oas.annotations.media.Schema
-import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
@@ -64,10 +63,6 @@ data class QuizSetUpdateRequest(
     @field:Size(min = 1, message = "카테고리는 최소 1개 이상 선택해야 합니다.")
     val categoryIds: List<Long> = emptyList(),
 
-    @field:Schema(description = "퀴즈 목록")
-    @field:Valid
-    @field:Size(max = 100, message = "퀴즈는 하나의 퀴즈셋에 100개 이하로 생성 가능합니다.")
-    val quizzes: List<QuizRequest> = emptyList(),
 )
 
 /**
@@ -110,9 +105,6 @@ data class QuizSetResponse(
 	@field:Schema(description = "카테고리 목록")
 	val categories: List<CategoryResponse>,
 
-    @field:Schema(description = "퀴즈 목록")
-    val quizzes: List<QuizResponse>,
-
 	@field:Schema(description = "생성 시각")
 	val createdAt: Instant,
 
@@ -130,7 +122,6 @@ data class QuizSetResponse(
 			likeCount = quizSet.likeCount,
 			quizCount = quizSet.quizzes.size,
 			categories = quizSet.categories.map { CategoryResponse.from(it.category) },
-            quizzes = quizSet.quizzes.map { QuizResponse.from(it) },
 			createdAt = quizSet.createdAt,
 			updatedAt = quizSet.updatedAt,
 		)

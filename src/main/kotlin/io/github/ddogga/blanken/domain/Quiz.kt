@@ -32,4 +32,10 @@ class Quiz(
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "quiz_set_id", nullable = false)
 	lateinit var quizSet: QuizSet
+
+	fun update(sentence: String, answerWord: String, hint: String?) {
+		this.sentence = sentence
+		this.answerWord = answerWord
+		this.hint = hint
+	}
 }

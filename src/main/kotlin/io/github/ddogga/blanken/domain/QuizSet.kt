@@ -1,5 +1,6 @@
 package io.github.ddogga.blanken.domain
 
+import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
@@ -58,13 +59,17 @@ class QuizSet(
 
 	val categories: List<QuizSetCategory> get() = mutableCategories
 
+	/** 영속 상태에서는 cascade PERSIST 로 커밋 시 INSERT 된다. 별도 save 불필요. */
 	fun addQuiz(quiz: Quiz) {
 		mutableQuizzes.add(quiz)
 		quiz.quizSet = this
+		quizCount = mutableQuizzes.size
 	}
 
+	/** 영속 상태에서는 orphanRemoval 로 커밋 시 DELETE 된다. */
 	fun removeQuiz(quiz: Quiz) {
 		mutableQuizzes.remove(quiz)
+		quizCount = mutableQuizzes.size
 	}
 
 	fun addCategory(category: Category) {
@@ -77,6 +82,30 @@ class QuizSet(
 		require(mutableCategories.size > 1) { CATEGORY_REQUIRED_MESSAGE }
 		mutableCategories.removeIf { it.category.id == category.id }
 	}
+
+
+    fun update(updateDto : QuizSetUpdateRequest) {
+        if (updateDto.title.isNotEmpty()) {
+            this.title = updateDto.title
+        }
+        this.description = updateDto.description
+        this.visibility = updateDto.visibility
+    }
+
+    fun updateCategories(newCategories: List<Category>) {
+        val requestedIds = newCategories.stream().map{it.id}.toList().toSet()
+
+        this.mutableCategories.forEach{
+            if (!requestedIds.contains(it.category.id)) {
+                mutableCategories.remove(it)
+            }
+        }
+
+        newCategories.forEach { addCategory(it) }
+    }
+
+
+
 
     companion object {
         private const val CATEGORY_REQUIRED_MESSAGE = "퀴즈셋에는 카테고리가 최소 1개 있어야 합니다."

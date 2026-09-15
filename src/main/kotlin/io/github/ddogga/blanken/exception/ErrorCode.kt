@@ -28,6 +28,9 @@ enum class ErrorCode(
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "유저를 찾을 수 없습니다."),
 	DUPLICATE_EMAIL(HttpStatus.CONFLICT, "U002", "이미 사용 중인 이메일입니다."),
 
+    // Quiz Set
+    QUIZ_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "퀴즈 셋을 찾을 수 없습니다."),
+
     // Category
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "G001", "카테고리를 찾을 수 없습니다."),
 

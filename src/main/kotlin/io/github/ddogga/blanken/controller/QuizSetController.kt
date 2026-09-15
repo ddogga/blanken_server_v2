@@ -1,6 +1,5 @@
 package io.github.ddogga.blanken.controller
 
-import io.github.ddogga.blanken.dto.quiz.QuizResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
@@ -39,9 +38,5 @@ class QuizSetController(
         @Parameter(description = "퀴즈셋 ID", example = "1")
         @PathVariable quizSetId: Long,
         @Valid @RequestBody request: QuizSetUpdateRequest
-    ) : QuizSetResponse? = quizSetService.update(quizSetId, request)
-
-
-
-
+    ): QuizSetResponse = quizSetService.update(quizSetId, request)
 }
