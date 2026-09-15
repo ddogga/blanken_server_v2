@@ -14,6 +14,13 @@ spring:
         format_sql: true
     open-in-view: false
 
+# 실행 SQL 을 로그로 출력한다. show_sql 은 System.out 으로 바로 찍혀 로거를 우회하므로 쓰지 않는다.
+# 개발 편의용 — 운영 프로파일에서는 끌 것.
+logging:
+  level:
+    org.hibernate.SQL: debug                # 실행되는 SQL 문 (format_sql 로 줄바꿈 정렬됨)
+    org.hibernate.orm.jdbc.bind: trace      # 바인딩되는 파라미터 값 (`?` 자리에 뭐가 들어갔는지)
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
