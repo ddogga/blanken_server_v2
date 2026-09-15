@@ -8,6 +8,7 @@ import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.ErrorCode
+import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.CategoryRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
@@ -26,7 +27,7 @@ import kotlin.test.assertFailsWith
  * `QuizSetService` 단위 테스트.
  *
  * 저장소는 목으로 끊고 서비스가 책임지는 분기만 본다 —
- * 소유자/카테고리 조회 실패의 도메인 예외 변환, 그리고 조회한 카테고리를 퀴즈셋에 연결하는 것.
+ * 소유자/카테고리/퀴즈셋 조회 실패의 도메인 예외 변환, 그리고 조회한 카테고리를 퀴즈셋에 연결·교체하는 것.
  */
 class QuizSetServiceTest {
 
@@ -127,15 +128,7 @@ class QuizSetServiceTest {
         every { quizSetRepository.findWithCategoriesById(QUIZ_SET_ID) } returns quizSet(owner, categories)
 
         // when
-        val response = quizSetService.update(
-            QUIZ_SET_ID,
-            QuizSetUpdateRequest(
-                title = NEW_TITLE,
-                description = NEW_DESCRIPTION,
-                visibility = Visibility.PRIVATE,
-                categoryIds = listOf(CATEGORY_ID_3, CATEGORY_ID_4),
-            )
-        )
+        val response = quizSetService.update(QUIZ_SET_ID, updateRequest())
 
         // then
         assertEquals(NEW_TITLE, response.title)
@@ -145,6 +138,21 @@ class QuizSetServiceTest {
 
     }
 
+	@Test
+	fun `존재하지_않는_퀴즈셋_수정시_QUIZ_SET_NOT_FOUND_예외를_던진다`() {
+		// given
+		every { quizSetRepository.findWithCategoriesById(MISSING_QUIZ_SET_ID) } returns null
+
+		// when
+		val exception = assertFailsWith<QuizSetNotFoundExceptions> {
+			quizSetService.update(MISSING_QUIZ_SET_ID, updateRequest())
+		}
+
+		// then
+		assertEquals(ErrorCode.QUIZ_SET_NOT_FOUND, exception.errorCode)
+		assertEquals(MISSING_QUIZ_SET_ID, exception.quizSetId)
+		verify(exactly = 0) { categoryRepository.findAllById(any<Iterable<Long>>()) }
+	}
 
 	private fun createRequest(
 		categoryIds: List<Long> = listOf(CATEGORY_ID_1),
@@ -153,6 +161,15 @@ class QuizSetServiceTest {
 		title = TITLE,
 		description = DESCRIPTION,
 		visibility = Visibility.PUBLIC,
+		categoryIds = categoryIds,
+	)
+
+	private fun updateRequest(
+		categoryIds: List<Long> = listOf(CATEGORY_ID_3, CATEGORY_ID_4),
+	) = QuizSetUpdateRequest(
+		title = NEW_TITLE,
+		description = NEW_DESCRIPTION,
+		visibility = Visibility.PRIVATE,
 		categoryIds = categoryIds,
 	)
 
@@ -180,6 +197,7 @@ class QuizSetServiceTest {
 
 	companion object {
 		private const val QUIZ_SET_ID = 1L
+		private const val MISSING_QUIZ_SET_ID = 99L
 		private const val OWNER_ID = 1L
 		private const val CATEGORY_ID_1 = 1L
 		private const val CATEGORY_ID_2 = 2L

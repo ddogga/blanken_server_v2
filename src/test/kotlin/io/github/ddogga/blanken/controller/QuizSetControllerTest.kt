@@ -5,6 +5,7 @@ import io.github.ddogga.blanken.domain.Visibility
 import io.github.ddogga.blanken.dto.category.CategoryResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
+import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.service.QuizSetService
 import io.mockk.every
@@ -14,6 +15,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
+import org.springframework.test.web.servlet.put
 import java.time.Instant
 
 /**
@@ -114,6 +116,22 @@ class QuizSetControllerTest(
 		}
 	}
 
+	@Test
+	fun `404_존재하지_않는_퀴즈셋_수정_실패`() {
+		// given
+		every { quizSetService.update(QUIZ_SET_ID, any()) } throws QuizSetNotFoundExceptions(QUIZ_SET_ID)
+
+		// when & then — 본문은 @Valid 를 통과하는 값이어야 서비스까지 도달해 404 가 나온다.
+		mockMvc.put("/api/quiz-sets/$QUIZ_SET_ID") {
+			contentType = MediaType.APPLICATION_JSON
+			content = UPDATE_REQUEST_BODY
+		}.andExpect {
+			status { isNotFound() }
+			jsonPath("$.code") { value("Q001") }
+			jsonPath("$.message") { value("퀴즈 셋을 찾을 수 없습니다.") }
+		}
+	}
+
 	private fun quizSetResponse(): QuizSetResponse = QuizSetResponse(
 		id = QUIZ_SET_ID,
 		ownerId = OWNER_ID,
@@ -135,6 +153,8 @@ class QuizSetControllerTest(
 		private const val TITLE = "토익 빈출 동사"
 		private const val REQUEST_BODY =
 			"""{"ownerId":1,"title":"토익 빈출 동사","description":"30선","visibility":"PUBLIC","categoryIds":[1]}"""
+		private const val UPDATE_REQUEST_BODY =
+			"""{"title":"토플 빈출 구동사","description":"100선","visibility":"PRIVATE","categoryIds":[3,4]}"""
 		private val CREATED_AT: Instant = Instant.parse("2026-09-02T00:00:00Z")
 	}
 }
