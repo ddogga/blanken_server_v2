@@ -33,9 +33,27 @@ class Quiz(
 	@JoinColumn(name = "quiz_set_id", nullable = false)
 	lateinit var quizSet: QuizSet
 
+	init {
+		validateSentence(sentence)
+	}
+
 	fun update(sentence: String, answerWord: String, hint: String?) {
+		validateSentence(sentence)
 		this.sentence = sentence
 		this.answerWord = answerWord
 		this.hint = hint
+	}
+
+	companion object {
+
+		const val BLANK = "{{}}"
+		const val SENTENCE_PATTERN = "^[^{}]*\\{\\{\\}\\}[^{}]*$"
+		const val SENTENCE_RULE_MESSAGE = "문장에는 빈칸 {{}} 이 정확히 하나 있어야 합니다."
+
+		private val sentenceRegex = Regex(SENTENCE_PATTERN)
+
+		private fun validateSentence(sentence: String) {
+			require(sentenceRegex.matches(sentence)) { SENTENCE_RULE_MESSAGE }
+		}
 	}
 }

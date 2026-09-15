@@ -63,13 +63,13 @@ class QuizSet(
 	fun addQuiz(quiz: Quiz) {
 		mutableQuizzes.add(quiz)
 		quiz.quizSet = this
-		quizCount = mutableQuizzes.size
+		quizCount += 1
 	}
 
 	/** 영속 상태에서는 orphanRemoval 로 커밋 시 DELETE 된다. */
 	fun removeQuiz(quiz: Quiz) {
 		mutableQuizzes.remove(quiz)
-		quizCount = mutableQuizzes.size
+		quizCount -= 1
 	}
 
 	fun addCategory(category: Category) {
