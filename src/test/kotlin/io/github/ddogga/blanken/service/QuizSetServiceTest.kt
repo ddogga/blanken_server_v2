@@ -5,6 +5,7 @@ import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.domain.User
 import io.github.ddogga.blanken.domain.Visibility
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
+import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.ErrorCode
 import io.github.ddogga.blanken.exception.UserNotFoundException
@@ -112,6 +113,39 @@ class QuizSetServiceTest {
 		verify(exactly = 0) { quizSetRepository.save(any()) }
 	}
 
+
+
+    @Test
+    fun `퀴즈셋을_정상적으로_수정한다`()  {
+
+        // given
+        val owner = user()
+        val categories = listOf(category(CATEGORY_ID_1, "토익"), category(CATEGORY_ID_2, "비즈니스"))
+        val newCategories = listOf(category(CATEGORY_ID_3, "일상회화"), category(CATEGORY_ID_4, "여행"))
+
+        every { categoryRepository.findAllById(setOf(CATEGORY_ID_3, CATEGORY_ID_4)) } returns newCategories
+        every { quizSetRepository.findWithCategoriesById(QUIZ_SET_ID) } returns quizSet(owner, categories)
+
+        // when
+        val response = quizSetService.update(
+            QUIZ_SET_ID,
+            QuizSetUpdateRequest(
+                title = NEW_TITLE,
+                description = NEW_DESCRIPTION,
+                visibility = Visibility.PRIVATE,
+                categoryIds = listOf(CATEGORY_ID_3, CATEGORY_ID_4),
+            )
+        )
+
+        // then
+        assertEquals(NEW_TITLE, response.title)
+        assertEquals(NEW_DESCRIPTION, response.description)
+        assertEquals(Visibility.PRIVATE, response.visibility)
+        assertEquals(listOf("일상회화", "여행"), response.categories.map { it.name })
+
+    }
+
+
 	private fun createRequest(
 		categoryIds: List<Long> = listOf(CATEGORY_ID_1),
 	) = QuizSetCreateRequest(
@@ -148,7 +182,9 @@ class QuizSetServiceTest {
 		private const val QUIZ_SET_ID = 1L
 		private const val OWNER_ID = 1L
 		private const val CATEGORY_ID_1 = 1L
-		private const val CATEGORY_ID_2 = 3L
+		private const val CATEGORY_ID_2 = 2L
+        private const val CATEGORY_ID_3 = 3L
+        private const val CATEGORY_ID_4 = 4L
 		private const val MISSING_CATEGORY_ID_1 = 7L
 		private const val MISSING_CATEGORY_ID_2 = 9L
 		private const val EMAIL = "owner@blanken.io"
@@ -156,5 +192,7 @@ class QuizSetServiceTest {
 		private const val TITLE = "토익 빈출 동사"
 		private const val DESCRIPTION = "30선"
 		private val CREATED_AT: Instant = Instant.parse("2026-01-02T00:00:00Z")
+        private const val NEW_TITLE = "토플 빈출 구동사"
+        private const val NEW_DESCRIPTION = "100선"
 	}
 }
