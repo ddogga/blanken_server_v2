@@ -93,14 +93,11 @@ class QuizSet(
     }
 
     fun updateCategories(newCategories: List<Category>) {
-        val requestedIds = newCategories.stream().map{it.id}.toList().toSet()
+        val requestedIds = newCategories.map { it.id }.toSet()
 
-        this.mutableCategories.forEach{
-            if (!requestedIds.contains(it.category.id)) {
-                mutableCategories.remove(it)
-            }
-        }
-
+        // forEach 안에서 remove 하면 순회 중 구조가 바뀌어 ConcurrentModificationException 이 난다.
+        // removeIf 는 이터레이터 자신의 remove 를 써서 안전하다.
+        mutableCategories.removeIf { it.category.id !in requestedIds }
         newCategories.forEach { addCategory(it) }
     }
 

@@ -55,7 +55,7 @@ class QuizSetService(
 
         quizSet.update(request)
 
-        val newCategories = categoryRepository.findAllById(request.categoryIds)
+        val newCategories = findCategoriesByIds(request.categoryIds)
         quizSet.updateCategories(newCategories)
 
         return QuizSetResponse.from(quizSet)
