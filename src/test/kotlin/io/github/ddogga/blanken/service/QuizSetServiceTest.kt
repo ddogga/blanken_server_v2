@@ -9,6 +9,7 @@ import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.ErrorCode
 import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
+import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.CategoryRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
@@ -71,6 +72,25 @@ class QuizSetServiceTest {
 			savedQuizSet.captured.categories.map { it.category.id },
 		)
 	}
+
+    @Test
+    fun `이름_중복시_QUIZ_SET_TITLE_DUPLICATION_예외를_던진다`() {
+        // given
+        val owner = user()
+
+        every { userRepository.findById(OWNER_ID) } returns Optional.of(owner)
+        every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, TITLE)} returns true
+
+        // when
+        val exception = assertFailsWith<QuizSetTitleDuplicationException> {
+            quizSetService.create(createRequest())
+        }
+
+        // then
+        assertEquals(ErrorCode.QUIZ_SET_TITLE_DUPLICATION, exception.errorCode)
+        assertEquals(TITLE, exception.title)
+        verify(exactly = 0) { quizSetRepository.save(any()) }
+    }
 
 	@Test
 	fun `존재하지_않는_유저로_생성시_USER_NOT_FOUND_예외를_던진다`() {

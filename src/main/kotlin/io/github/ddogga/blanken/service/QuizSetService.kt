@@ -7,6 +7,7 @@ import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
+import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.CategoryRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
@@ -29,7 +30,7 @@ class QuizSetService(
         val owner = userRepository.findByIdOrNull(request.ownerId)
             ?: throw UserNotFoundException(request.ownerId)
 
-        // TODO : 퀴즈셋 이름 중복 체크 -> 같은 사용자가 같은 이름의 퀴즈셋을 중복해서 생성하지 않았는지 체크한다.
+        checkTitleDuplication(request.ownerId, request.title)
 
         // 퀴즈셋에는 카테고리가 최소 1개 필요하다. 카테고리 없는 퀴즈셋은 카테고리 필터 검색에 잡히지 않는다.
         require(request.categoryIds.isNotEmpty()) { "퀴즈셋에는 카테고리가 최소 1개 필요합니다." }
@@ -55,6 +56,9 @@ class QuizSetService(
         val quizSet = quizSetRepository.findWithCategoriesById(quizSetId)
             ?: throw QuizSetNotFoundExceptions(quizSetId)
 
+        checkTitleDuplication(quizSet.owner.id!!, request.title)
+        require(request.categoryIds.isNotEmpty()) { "퀴즈셋에는 카테고리가 최소 1개 필요합니다." }
+
         quizSet.update(request)
 
         val newCategories = findCategoriesByIds(request.categoryIds)
@@ -76,5 +80,12 @@ class QuizSetService(
         }
 
         return categories
+    }
+
+    private fun checkTitleDuplication(ownerId : Long, title : String) {
+        val isDuplicated = quizSetRepository.existsByOwnerIdAndTitle(ownerId, title)
+        if (isDuplicated) {
+            throw QuizSetTitleDuplicationException(title)
+        }
     }
 }

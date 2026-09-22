@@ -17,4 +17,8 @@ interface QuizSetRepository : JpaRepository<QuizSet, Long> {
 		"""
 	)
 	fun findWithCategoriesById(id: Long): QuizSet?
+
+
+    fun existsByOwnerIdAndTitle(ownerId: Long, title: String): Boolean
+
 }

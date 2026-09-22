@@ -31,6 +31,8 @@ enum class ErrorCode(
     // Quiz Set
     QUIZ_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "퀴즈 셋을 찾을 수 없습니다."),
     QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "Q002", "퀴즈를 찾을 수 없습니다."),
+    QUIZ_SET_TITLE_DUPLICATION(HttpStatus.CONFLICT, "Q003", "똑같은 이름의 퀴즈셋이 이미 존재합니다."),
+
 
 
     // Category

@@ -59,12 +59,12 @@ class QuizService (
     }
 
 
-    fun findQuizSetById(quizSetId : Long): QuizSet {
+    private fun findQuizSetById(quizSetId : Long): QuizSet {
         return quizSetRepository.findByIdOrNull(quizSetId)
             ?: throw QuizSetNotFoundExceptions(quizSetId)
     }
 
-    fun findQuizById(quizId : Long): Quiz {
+    private fun findQuizById(quizId : Long): Quiz {
         return quizRepository.findByIdOrNull(quizId)
             ?: throw QuizNotFoundException(quizId)
     }
