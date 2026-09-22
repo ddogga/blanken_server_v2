@@ -6,6 +6,7 @@ import io.github.ddogga.blanken.dto.category.CategoryResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
+import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.service.QuizSetService
 import io.mockk.every
@@ -52,6 +53,23 @@ class QuizSetControllerTest(
 			jsonPath("$.categories[0].name") { value("토익") }
 		}
 	}
+
+
+    @Test
+    fun `409_이름_중복_생성으로_퀴즈셋_생성_실패`() {
+        //given
+        every { quizSetService.create(any()) } throws QuizSetTitleDuplicationException(TITLE)
+
+        // when & then
+        mockMvc.post("/api/quiz-sets") {
+            contentType = MediaType.APPLICATION_JSON
+            content = REQUEST_BODY
+        }.andExpect {
+            status { isConflict() }
+            jsonPath("$.code") { value("Q003")}
+            jsonPath("$.message") { value("똑같은 이름의 퀴즈셋이 이미 존재합니다.")}
+        }
+    }
 
 	@Test
 	fun `404_존재하지_않는_유저_퀴즈셋_생성_실패`() {
@@ -131,6 +149,7 @@ class QuizSetControllerTest(
 			jsonPath("$.message") { value("퀴즈 셋을 찾을 수 없습니다.") }
 		}
 	}
+
 
 	private fun quizSetResponse(): QuizSetResponse = QuizSetResponse(
 		id = QUIZ_SET_ID,
