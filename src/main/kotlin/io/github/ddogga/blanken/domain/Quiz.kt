@@ -44,6 +44,12 @@ class Quiz(
 		this.hint = hint
 	}
 
+    fun updateQuizSet(newQuizSet : QuizSet) {
+        this.quizSet.removeQuiz(this)
+        this.quizSet = newQuizSet
+    }
+
+
 	companion object {
 
 		const val BLANK = "{{}}"

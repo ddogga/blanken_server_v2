@@ -40,6 +40,9 @@ data class QuizResponse(
     @field:Schema(description = "퀴즈 ID", example = "1")
     val id: Long,
 
+    @field:Schema(description = "퀴즈셋 ID", example = "1")
+    val quizSetId: Long,
+
     @field:Schema(
         description = "빈칸 {{}} 이 포함된 영어 문장",
         example = "She decided to {{}} the meeting until next week.",
@@ -54,11 +57,12 @@ data class QuizResponse(
 
 ) {
     companion object {
-        fun from(quiz: Quiz): QuizResponse = QuizResponse(
+        fun from(quiz: Quiz, quizSetId: Long): QuizResponse = QuizResponse(
             id = requireNotNull(quiz.id) {"저장되지 않은 Quiz는 응답으로 변환할 수 없습니다."},
             sentence = quiz.sentence,
             answerWord = quiz.answerWord,
             hint = quiz.hint,
+            quizSetId = quizSetId
         )
     }
 }

@@ -30,6 +30,8 @@ enum class ErrorCode(
 
     // Quiz Set
     QUIZ_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "퀴즈 셋을 찾을 수 없습니다."),
+    QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "Q002", "퀴즈를 찾을 수 없습니다."),
+
 
     // Category
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "G001", "카테고리를 찾을 수 없습니다."),

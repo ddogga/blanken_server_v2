@@ -29,6 +29,8 @@ class QuizSetService(
         val owner = userRepository.findByIdOrNull(request.ownerId)
             ?: throw UserNotFoundException(request.ownerId)
 
+        // TODO : 퀴즈셋 이름 중복 체크 -> 같은 사용자가 같은 이름의 퀴즈셋을 중복해서 생성하지 않았는지 체크한다.
+
         // 퀴즈셋에는 카테고리가 최소 1개 필요하다. 카테고리 없는 퀴즈셋은 카테고리 필터 검색에 잡히지 않는다.
         require(request.categoryIds.isNotEmpty()) { "퀴즈셋에는 카테고리가 최소 1개 필요합니다." }
 

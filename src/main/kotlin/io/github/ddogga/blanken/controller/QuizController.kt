@@ -8,8 +8,10 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
@@ -31,8 +33,29 @@ class QuizController (
         @Valid @RequestBody request: QuizRequest
     ): ResponseEntity<QuizResponse>{
         val newQuiz = quizService.create(quizSetId, request)
-        return ResponseEntity.created(URI.create("/api/quiz-sets/{quizSetId}/quizzes/${newQuiz.id}")).body(newQuiz)
+        return ResponseEntity.created(URI.create("/api/quiz-sets/${quizSetId}/quizzes/${newQuiz.id}")).body(newQuiz)
     }
+
+    @Operation(summary = "퀴즈 수정", description = "퀴즈를 수정합니다.")
+    @PutMapping("/{quizId}")
+    fun updateQuiz(
+        @Parameter(description = "퀴즈를 수정할 퀴즈셋 ID", example = "1")
+        @PathVariable quizSetId: Long,
+        @Parameter(description = "퀴즈 ID", example = "1")
+        @PathVariable quizId: Long,
+        @Valid @RequestBody request: QuizRequest
+    ): QuizResponse = quizService.update(quizId, quizSetId, request)
+
+
+    @Operation(summary = "퀴즈를 다른 퀴즈셋으로 옮기기", description = "퀴즈가 소속된 퀴즈셋을 변경합니다.")
+    @PatchMapping("/{quizId}")
+    fun changeQuizSet(
+        @Parameter(description = "옮길 quizSetId", example = "1")
+        @PathVariable quizSetId: Long,
+        @Parameter(description = "퀴즈 ID", example = "1")
+        @PathVariable quizId: Long): QuizResponse = quizService.changeQuizSet(quizId, quizSetId)
+
+
 
 
 }
