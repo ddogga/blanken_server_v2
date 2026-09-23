@@ -11,12 +11,11 @@ interface QuizSetRepository : JpaRepository<QuizSet, Long> {
 		"""
 		select qs from QuizSet qs
 		join fetch qs.owner
-		left join fetch qs.mutableCategories qc
-		left join fetch qc.category
+		join fetch qs.category
 		where qs.id = :id
 		"""
 	)
-	fun findWithCategoriesById(id: Long): QuizSet?
+	fun findWithCategoryById(id: Long): QuizSet?
 
 
     fun existsByOwnerIdAndTitle(ownerId: Long, title: String): Boolean

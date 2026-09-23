@@ -32,20 +32,14 @@ class QuizSetService(
 
         checkTitleDuplication(request.ownerId, request.title)
 
-        // 퀴즈셋에는 카테고리가 최소 1개 필요하다. 카테고리 없는 퀴즈셋은 카테고리 필터 검색에 잡히지 않는다.
-        require(request.categoryIds.isNotEmpty()) { "퀴즈셋에는 카테고리가 최소 1개 필요합니다." }
-
-        val foundCategories = findCategoriesByIds(request.categoryIds)
-
         val quizSet = QuizSet(
             owner = owner,
+            category = findCategoryById(request.categoryId),
             title = request.title,
             description = request.description,
             visibility = request.visibility,
         )
-        foundCategories.forEach { quizSet.addCategory(it) }
 
-        // QuizSetCategory의 cascade 전략이 ALL이기 때문에 별도의 save 호출 없어도 자동 insert
         return QuizSetResponse.from(quizSetRepository.save(quizSet))
     }
 
@@ -53,34 +47,22 @@ class QuizSetService(
     @Transactional
     fun update(quizSetId: Long, request: QuizSetUpdateRequest): QuizSetResponse {
 
-        val quizSet = quizSetRepository.findWithCategoriesById(quizSetId)
+        val quizSet = quizSetRepository.findWithCategoryById(quizSetId)
             ?: throw QuizSetNotFoundExceptions(quizSetId)
 
         checkTitleDuplication(quizSet.owner.id!!, request.title)
-        require(request.categoryIds.isNotEmpty()) { "퀴즈셋에는 카테고리가 최소 1개 필요합니다." }
 
         quizSet.update(request)
-
-        val newCategories = findCategoriesByIds(request.categoryIds)
-        quizSet.updateCategories(newCategories)
+        quizSet.updateCategory(findCategoryById(request.categoryId))
 
         return QuizSetResponse.from(quizSet)
     }
 
 
 
-    private fun findCategoriesByIds(categoryIds : List<Long>) : List<Category>{
-        val requestedIds = categoryIds.toSet()
-        val categories = categoryRepository.findAllById(requestedIds)
-        val foundIds = categories.mapNotNull { it.id }.toSet()
-
-        val missingIds = requestedIds - foundIds
-        if (missingIds.isNotEmpty()) {
-            throw CategoryNotFoundException(missingIds.toList())
-        }
-
-        return categories
-    }
+    private fun findCategoryById(categoryId: Long): Category =
+        categoryRepository.findByIdOrNull(categoryId)
+            ?: throw CategoryNotFoundException(categoryId)
 
     private fun checkTitleDuplication(ownerId : Long, title : String) {
         val isDuplicated = quizSetRepository.existsByOwnerIdAndTitle(ownerId, title)

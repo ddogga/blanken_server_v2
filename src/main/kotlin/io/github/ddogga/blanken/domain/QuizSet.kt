@@ -24,7 +24,11 @@ class QuizSet(
 	@JoinColumn(name = "owner_id", nullable = false)
 	var owner: User,
 
-	@Column(name = "title", nullable = false, length = 100)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "category_id", nullable = false)
+    var category: Category,
+
+    @Column(name = "title", nullable = false, length = 100)
 	var title: String,
 
 	@Column(name = "description", length = 500)
@@ -54,11 +58,6 @@ class QuizSet(
 
 	val quizzes: List<Quiz> get() = mutableQuizzes
 
-	@OneToMany(mappedBy = "quizSet", cascade = [CascadeType.ALL], orphanRemoval = true)
-	private val mutableCategories: MutableList<QuizSetCategory> = mutableListOf()
-
-	val categories: List<QuizSetCategory> get() = mutableCategories
-
 	/** 영속 상태에서는 cascade PERSIST 로 커밋 시 INSERT 된다. 별도 save 불필요. */
 	fun addQuiz(quiz: Quiz) {
 		mutableQuizzes.add(quiz)
@@ -72,18 +71,6 @@ class QuizSet(
 		quizCount -= 1
 	}
 
-	fun addCategory(category: Category) {
-		if (mutableCategories.any { it.category.id == category.id }) return
-		mutableCategories.add(QuizSetCategory(quizSet = this, category = category))
-	}
-
-	fun removeCategory(category: Category) {
-		if (mutableCategories.none { it.category.id == category.id }) return
-		require(mutableCategories.size > 1) { CATEGORY_REQUIRED_MESSAGE }
-		mutableCategories.removeIf { it.category.id == category.id }
-	}
-
-
     fun update(updateDto : QuizSetUpdateRequest) {
         if (updateDto.title.isNotEmpty()) {
             this.title = updateDto.title
@@ -92,19 +79,7 @@ class QuizSet(
         this.visibility = updateDto.visibility
     }
 
-    fun updateCategories(newCategories: List<Category>) {
-        val requestedIds = newCategories.map { it.id }.toSet()
-
-        // forEach 안에서 remove 하면 순회 중 구조가 바뀌어 ConcurrentModificationException 이 난다.
-        // removeIf 는 이터레이터 자신의 remove 를 써서 안전하다.
-        mutableCategories.removeIf { it.category.id !in requestedIds }
-        newCategories.forEach { addCategory(it) }
-    }
-
-
-
-
-    companion object {
-        private const val CATEGORY_REQUIRED_MESSAGE = "퀴즈셋에는 카테고리가 최소 1개 있어야 합니다."
+    fun updateCategory(newCategory: Category) {
+        this.category = newCategory
     }
 }

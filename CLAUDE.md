@@ -38,7 +38,7 @@ M1 진행 중 — 엔티티 계층까지 완료.
 
 기존 코드
 - `config/` — `OpenApiConfig`, `JpaAuditingConfig`, `PasswordEncoderConfig`
-- `domain/` — `BaseTimeEntity`, `User`, `QuizSet`, `Quiz`, `Category`, `QuizSetCategory`, `QuizSetLike`, `StudyHistory`, `StudyHistoryDetail`, `Visibility`
+- `domain/` — `BaseTimeEntity`, `User`, `QuizSet`, `Quiz`, `Category`, `QuizSetLike`, `StudyHistory`, `StudyHistoryDetail`, `Visibility`
 - `repository/` — `UserRepository`
 - `service/` — `UserService`
 - `controller/` — `UserController`, `TestController`
@@ -105,7 +105,7 @@ M1 진행 중 — 엔티티 계층까지 완료.
 - 클라이언트는 낙관적 UI(즉시 반영 후 실패 시 롤백) → 서버는 **멱등**해야 한다. 더블탭·재시도가 와도 결과는 좋아요 1개로 수렴.
 
 ### 4.6 검색
-- 퀴즈셋 이름 + 다중 카테고리 복합 검색. 카테고리 다중 선택은 `WHERE category IN (...)` 필터링.
+- 퀴즈셋 이름 + 카테고리 복합 검색. **퀴즈셋당 카테고리는 1개**지만(§4.7) 사용자는 여러 개를 골라 거를 수 있다 — `WHERE quiz_set.category_id IN (...)`. 다대일이 되면서 조인 없이 `quiz_set` 한 테이블에서 끝나고, 퀴즈셋이 여러 행으로 불어나지 않아 `DISTINCT` 도 필요 없다.
 - **서버 필터링(재쿼리) 채택.** 필터 토글 시 클라가 보유한 결과를 거르지 않고 서버에 재요청한다. 페이지네이션 위에서의 클라 필터링은 로드된 부분집합만 걸러 부정확하기 때문.
 - **검색 결과에 좋아요 정보 병합**하되 N+1 금지: isLiked는 `WHERE user_id=? AND quizset_id IN (...)` 한 번, 카운트는 Redis `MGET` 한 번.
 - ES + Nori는 **속도 때문이 아니라** 형태소 분석·관련도 랭킹·오타 허용·패싯이 필요해질 때 도입. 속도만 필요하면 `pg_trgm`으로 충분. 도입 시 RDB↔ES 동기화는 이벤트/MQ(또는 CDC).
@@ -114,10 +114,13 @@ M1 진행 중 — 엔티티 계층까지 완료.
 - 2단계 생성 플로우: ① 이름·설명·카테고리로 퀴즈셋 생성(POST) → ② 수정 페이지에서 퀴즈 추가/삭제/수정.
 - 퀴즈 수정은 PUT. 클라이언트는 **변경이 발생했을 때만** 수정 버튼을 활성화해 호출한다.
 - 퀴즈 생성 입력: 정답 단어가 포함된 영어 문장 + 정답 단어 + (선택) 힌트.
-- **퀴즈셋에는 카테고리가 최소 1개 필요하다** (2026-09-01 결정). 카테고리 없는 퀴즈셋은 §4.6 카테고리 필터 검색에 영원히 잡히지 않아, 만들어지는 순간 발견될 수 없는 데이터가 된다.
-  - 사용자 입력은 `QuizSetCreateRequest.categoryIds` 의 **`@Size(min = 1)`** 이 400(`C001` + `fieldErrors`)으로 거른다.
-  - 그 뒤 `QuizSetService.create` 의 `require` 가 서버 코드 실수용 방어선으로 한 번 더 막는다.
-  - **엔티티는 이 규칙을 강제하지 않는다** (2026-09-02 결정). 카테고리는 `addCategory` 로 생성 후에 붙는 구조라 생성자로는 못 막고, 팩터리 + `private` 생성자로 막아 봤더니 **테스트에서 `id` 를 지정할 길이 사라져** 픽스처를 만들 수 없었다. 규칙 하나를 도메인에 넣는 대가로 모든 퀴즈셋 테스트가 번거로워지는 거래라 되돌렸다.
+- **퀴즈셋은 카테고리 하나에 속한다 — `QuizSet.category` 는 `@ManyToOne(optional = false)`** (2026-09-23 결정).
+  원래는 다대다(`quiz_set_category` 조인 엔티티 + 복합 PK)였으나 다대일로 정리했다. 조인 엔티티·`QuizSetCategoryId`·`addCategory`/`updateCategories` 가 모두 사라졌다.
+  - **"카테고리가 없으면 안 된다"는 규칙(2026-09-01 결정)은 그대로 유효하다.** 카테고리 없는 퀴즈셋은 §4.6 필터 검색에 영원히 잡히지 않아, 만들어지는 순간 발견될 수 없는 데이터가 된다. 바뀐 건 규칙이 아니라 **강제 수단**이다.
+  - 이제 `quiz_set.category_id` 가 **NOT NULL FK** 라 스키마가 보장한다. 애플리케이션 검증은 메시지 품질용 방어선이지 보장이 아니다 — §6의 UNIQUE 제약과 같은 구도.
+  - 사용자 입력은 `QuizSetCreateRequest.categoryId` 의 **`@Positive`** 가 거른다. 필드를 통째로 빼면 Kotlin 논-널이라 `@Valid` 가 돌기 전에 역직렬화에서 걸려 **`fieldErrors` 없는 `C001`** 이 나간다 (`ownerId` 와 같은 처리).
+  - `@Size(min = 1)` 을 쓰지 않는 이유: 그 애너테이션이 필요했던 건 리스트가 **"있는데 비어 있는"** 상태로 역직렬화를 통과할 수 있어서였다. 스칼라 `Long` 에는 그 상태가 없다.
+  - **"엔티티는 이 규칙을 강제하지 않는다"(2026-09-02 결정)는 뒤집혔다.** 그때 못 막은 이유는 카테고리가 `addCategory` 로 **생성 후에** 붙는 구조여서 생성자로는 손댈 수 없었기 때문인데, 다대일이 되면서 카테고리가 생성자 논-널 파라미터로 들어온다. 팩터리나 `private` 생성자 없이 강제되므로 **테스트에서 `id` 를 지정하는 길도 그대로 남는다.** 당시 규칙을 포기하게 만든 거래 자체가 사라졌다.
 
 ### 4.8 팔로우 + 알림 팬아웃
 - 생성 API는 `QuizSetCreated` 이벤트만 발행하고 **즉시 응답**. 알림 서비스 컨슈머가 팔로워 목록을 조회해 알림 생성/전송, 실패 시 재시도(DLQ).
@@ -260,9 +263,8 @@ M1 엔티티는 `io.github.ddogga.blanken.domain` 패키지에 **구현 완료**
 
 ```
 users                 (id, email, password, nickname, created_at, updated_at)
-quiz_set              (id, owner_id, title, description, visibility, like_count, created_at, updated_at)
+quiz_set              (id, owner_id, category_id, title, description, visibility, like_count, quiz_count, created_at, updated_at)
 category              (id, name)                          -- name UNIQUE
-quiz_set_category     (quiz_set_id, category_id)          -- 복합 PK, 명시적 조인 엔티티
 quiz                  (id, quiz_set_id, sentence, answer_word, hint)
 quiz_set_like         (id, user_id, quiz_set_id, created_at, updated_at)  -- UNIQUE(user_id, quiz_set_id)
 study_history         (id, user_id, quiz_set_id, score, total_count, correct_count, solved_at)  -- append-only

@@ -28,8 +28,7 @@ class QuizServiceTest {
     fun `퀴즈를_정상적으로_생성한다`() {
 
         // given
-        val categories = listOf(category(CATEGORY_ID_1, "토익"), category(CATEGORY_ID_2, "비즈니스"))
-        val quizSet = quizSet(categories)
+        val quizSet = quizSet(category(CATEGORY_ID_1, "토익"))
         val savedQuiz = slot<Quiz>()
 
         every { quizSetRepository.findById(QUIZ_SET_ID) } returns Optional.of(quizSet)
@@ -57,8 +56,7 @@ class QuizServiceTest {
     fun `퀴즈를_정상적으로_수정한다`() {
 
         // given
-        val categories = listOf(category(CATEGORY_ID_1, "토익"), category(CATEGORY_ID_2, "비즈니스"))
-        val quizSet = quizSet(categories)
+        val quizSet = quizSet(category(CATEGORY_ID_1, "토익"))
         val savedQuiz = slot<Quiz>()
 
         every { quizRepository.findById(QUIZ_ID) } returns Optional.of(quiz(quizSet))
@@ -75,10 +73,9 @@ class QuizServiceTest {
     fun `퀴즈를_다른_퀴즈셋으로_정상적으로_옮긴다`() {
 
         // given
-        val categories = listOf(category(CATEGORY_ID_1, "토익"), category(CATEGORY_ID_2, "비즈니스"))
-        val quizSet = quizSet(categories)
+        val quizSet = quizSet(category(CATEGORY_ID_1, "토익"))
 
-        every { quizSetRepository.findById(NEW_QUIZ_SET_ID) } returns Optional.of(newQuizSet(categories))
+        every { quizSetRepository.findById(NEW_QUIZ_SET_ID) } returns Optional.of(newQuizSet(category(CATEGORY_ID_1, "토익")))
         every { quizRepository.findById(QUIZ_ID) } returns Optional.of(quiz(quizSet))
 
         // when
@@ -100,36 +97,24 @@ class QuizServiceTest {
 
     private fun category(id: Long, name: String): Category = Category(name = name, id = id)
 
-    private fun quizSet(categories: List<Category>): QuizSet =
-        QuizSet(
-            owner = User("x@x.io", "pass", "nick", 1L).apply {
-                createdAt = CREATED_AT
-                updatedAt = CREATED_AT
-            },
-            title = TITLE,
-            description = DESCRIPTION,
-            visibility = Visibility.PUBLIC,
-            id = QUIZ_SET_ID,
-        ).apply {
-            createdAt = CREATED_AT
-            updatedAt = CREATED_AT
-            categories.forEach { addCategory(it) }
-        }
+    private fun quizSet(category: Category): QuizSet = quizSet(category, QUIZ_SET_ID)
 
-    private fun newQuizSet(categories: List<Category>): QuizSet =
+    private fun newQuizSet(category: Category): QuizSet = quizSet(category, NEW_QUIZ_SET_ID)
+
+    private fun quizSet(category: Category, id: Long): QuizSet =
         QuizSet(
             owner = User("x@x.io", "pass", "nick", 1L).apply {
                 createdAt = CREATED_AT
                 updatedAt = CREATED_AT
             },
+            category = category,
             title = TITLE,
             description = DESCRIPTION,
             visibility = Visibility.PUBLIC,
-            id = NEW_QUIZ_SET_ID,
+            id = id,
         ).apply {
             createdAt = CREATED_AT
             updatedAt = CREATED_AT
-            categories.forEach { addCategory(it) }
         }
 
 
@@ -153,7 +138,6 @@ class QuizServiceTest {
         private const val TITLE = "토익 빈출 동사"
         private const val DESCRIPTION = "30선"
         private const val CATEGORY_ID_1 = 1L
-        private const val CATEGORY_ID_2 = 2L
         private const val QUIZ_ID = 10L
         private const val QUIZ_SENTENCE = "She decided to {{}} the meeting until next week."
         private const val QUIZ_ANSWER_WORD = "postpone"

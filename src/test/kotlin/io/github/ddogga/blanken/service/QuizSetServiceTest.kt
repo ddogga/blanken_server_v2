@@ -41,13 +41,13 @@ class QuizSetServiceTest {
 	fun `퀴즈셋을_정상적으로_생성한다`() {
 		// given
 		val owner = user()
-		val categories = listOf(category(CATEGORY_ID_1, "토익"), category(CATEGORY_ID_2, "비즈니스"))
+		val category = category(CATEGORY_ID_1, "토익")
 		val savedQuizSet = slot<QuizSet>()
 
 		every { userRepository.findById(OWNER_ID) } returns Optional.of(owner)
         every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, TITLE) } returns false
-        every { categoryRepository.findAllById(setOf(CATEGORY_ID_1, CATEGORY_ID_2)) } returns categories
-		every { quizSetRepository.save(capture(savedQuizSet)) } returns quizSet(owner, categories)
+        every { categoryRepository.findById(CATEGORY_ID_1) } returns Optional.of(category)
+		every { quizSetRepository.save(capture(savedQuizSet)) } returns quizSet(owner, category)
 
 		// when
 		val response = quizSetService.create(
@@ -56,7 +56,7 @@ class QuizSetServiceTest {
 				title = TITLE,
 				description = DESCRIPTION,
 				visibility = Visibility.PUBLIC,
-				categoryIds = listOf(CATEGORY_ID_1, CATEGORY_ID_2),
+				categoryId = CATEGORY_ID_1,
 			)
 		)
 
@@ -65,13 +65,10 @@ class QuizSetServiceTest {
 		assertEquals(DESCRIPTION, response.description)
 		assertEquals(OWNER_ID, response.ownerId)
 		assertEquals(NICKNAME, response.ownerNickname)
-		assertEquals(listOf("토익", "비즈니스"), response.categories.map { it.name })
+		assertEquals("토익", response.category.name)
 
 		// 조회한 카테고리가 저장 대상 엔티티에 실제로 연결됐는지
-		assertEquals(
-			listOf(CATEGORY_ID_1, CATEGORY_ID_2),
-			savedQuizSet.captured.categories.map { it.category.id },
-		)
+		assertEquals(CATEGORY_ID_1, savedQuizSet.captured.category.id)
 	}
 
     @Test
@@ -109,31 +106,21 @@ class QuizSetServiceTest {
 		verify(exactly = 0) { quizSetRepository.save(any()) }
 	}
 
-	/**
-	 * `findAllById` 는 없는 id 를 조용히 빼고 돌려준다.
-	 * 요청한 id 집합과의 차집합으로 **누락된 id 만** 골라내는지가 관심사다.
-	 */
 	@Test
 	fun `존재하지_않는_카테고리로_생성시_CATEGORY_NOT_FOUND_예외를_던진다`() {
-		// given — 1 만 있고 7, 9 는 없다
-		val requestedIds = listOf(CATEGORY_ID_1, MISSING_CATEGORY_ID_1, MISSING_CATEGORY_ID_2)
-
+		// given
         every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, TITLE) } returns false
 		every { userRepository.findById(OWNER_ID) } returns Optional.of(user())
-		every { categoryRepository.findAllById(requestedIds.toSet()) } returns
-			listOf(category(CATEGORY_ID_1, "토익"))
+		every { categoryRepository.findById(MISSING_CATEGORY_ID) } returns Optional.empty()
 
 		// when
 		val exception = assertFailsWith<CategoryNotFoundException> {
-			quizSetService.create(createRequest(categoryIds = requestedIds))
+			quizSetService.create(createRequest(categoryId = MISSING_CATEGORY_ID))
 		}
 
 		// then
 		assertEquals(ErrorCode.CATEGORY_NOT_FOUND, exception.errorCode)
-		assertEquals(
-			listOf(MISSING_CATEGORY_ID_1, MISSING_CATEGORY_ID_2),
-			exception.categoryIds.sorted(),
-		)
+		assertEquals(MISSING_CATEGORY_ID, exception.categoryId)
 		verify(exactly = 0) { quizSetRepository.save(any()) }
 	}
 
@@ -144,12 +131,12 @@ class QuizSetServiceTest {
 
         // given
         val owner = user()
-        val categories = listOf(category(CATEGORY_ID_1, "토익"), category(CATEGORY_ID_2, "비즈니스"))
-        val newCategories = listOf(category(CATEGORY_ID_3, "일상회화"), category(CATEGORY_ID_4, "여행"))
+        val category = category(CATEGORY_ID_1, "토익")
+        val newCategory = category(CATEGORY_ID_3, "일상회화")
 
         every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, NEW_TITLE) } returns false
-        every { categoryRepository.findAllById(setOf(CATEGORY_ID_3, CATEGORY_ID_4)) } returns newCategories
-        every { quizSetRepository.findWithCategoriesById(QUIZ_SET_ID) } returns quizSet(owner, categories)
+        every { categoryRepository.findById(CATEGORY_ID_3) } returns Optional.of(newCategory)
+        every { quizSetRepository.findWithCategoryById(QUIZ_SET_ID) } returns quizSet(owner, category)
 
         // when
         val response = quizSetService.update(QUIZ_SET_ID, updateRequest())
@@ -158,14 +145,14 @@ class QuizSetServiceTest {
         assertEquals(NEW_TITLE, response.title)
         assertEquals(NEW_DESCRIPTION, response.description)
         assertEquals(Visibility.PRIVATE, response.visibility)
-        assertEquals(listOf("일상회화", "여행"), response.categories.map { it.name })
+        assertEquals("일상회화", response.category.name)
 
     }
 
 	@Test
 	fun `존재하지_않는_퀴즈셋_수정시_QUIZ_SET_NOT_FOUND_예외를_던진다`() {
 		// given
-		every { quizSetRepository.findWithCategoriesById(MISSING_QUIZ_SET_ID) } returns null
+		every { quizSetRepository.findWithCategoryById(MISSING_QUIZ_SET_ID) } returns null
 
 		// when
 		val exception = assertFailsWith<QuizSetNotFoundExceptions> {
@@ -175,26 +162,26 @@ class QuizSetServiceTest {
 		// then
 		assertEquals(ErrorCode.QUIZ_SET_NOT_FOUND, exception.errorCode)
 		assertEquals(MISSING_QUIZ_SET_ID, exception.quizSetId)
-		verify(exactly = 0) { categoryRepository.findAllById(any<Iterable<Long>>()) }
+		verify(exactly = 0) { categoryRepository.findById(any()) }
 	}
 
 	private fun createRequest(
-		categoryIds: List<Long> = listOf(CATEGORY_ID_1),
+		categoryId: Long = CATEGORY_ID_1,
 	) = QuizSetCreateRequest(
 		ownerId = OWNER_ID,
 		title = TITLE,
 		description = DESCRIPTION,
 		visibility = Visibility.PUBLIC,
-		categoryIds = categoryIds,
+		categoryId = categoryId,
 	)
 
 	private fun updateRequest(
-		categoryIds: List<Long> = listOf(CATEGORY_ID_3, CATEGORY_ID_4),
+		categoryId: Long = CATEGORY_ID_3,
 	) = QuizSetUpdateRequest(
 		title = NEW_TITLE,
 		description = NEW_DESCRIPTION,
 		visibility = Visibility.PRIVATE,
-		categoryIds = categoryIds,
+		categoryId = categoryId,
 	)
 
 	private fun user(): User =
@@ -206,9 +193,10 @@ class QuizSetServiceTest {
 	private fun category(id: Long, name: String): Category = Category(name = name, id = id)
 
 	/** `save` 가 돌려주는 엔티티. 실제 DB 가 없으므로 id 를 직접 넣어 만든다. */
-	private fun quizSet(owner: User, categories: List<Category>): QuizSet =
+	private fun quizSet(owner: User, category: Category): QuizSet =
 		QuizSet(
 			owner = owner,
+			category = category,
 			title = TITLE,
 			description = DESCRIPTION,
 			visibility = Visibility.PUBLIC,
@@ -216,7 +204,6 @@ class QuizSetServiceTest {
 		).apply {
 			createdAt = CREATED_AT
 			updatedAt = CREATED_AT
-			categories.forEach { addCategory(it) }
 		}
 
 	companion object {
@@ -224,11 +211,8 @@ class QuizSetServiceTest {
 		private const val MISSING_QUIZ_SET_ID = 99L
 		private const val OWNER_ID = 1L
 		private const val CATEGORY_ID_1 = 1L
-		private const val CATEGORY_ID_2 = 2L
         private const val CATEGORY_ID_3 = 3L
-        private const val CATEGORY_ID_4 = 4L
-		private const val MISSING_CATEGORY_ID_1 = 7L
-		private const val MISSING_CATEGORY_ID_2 = 9L
+		private const val MISSING_CATEGORY_ID = 7L
 		private const val EMAIL = "owner@blanken.io"
 		private const val NICKNAME = "blanken"
 		private const val TITLE = "토익 빈출 동사"

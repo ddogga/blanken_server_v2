@@ -32,14 +32,12 @@ data class QuizSetCreateRequest(
 	val visibility: Visibility = Visibility.PUBLIC,
 
 	/**
-	 * **최소 1개는 필수다.** 카테고리 없는 퀴즈셋은 카테고리 필터 검색에 영원히 잡히지 않는다.
-	 *
-	 * 기본값을 빈 목록으로 두는 이유는, 필드를 통째로 생략했을 때 Jackson 역직렬화가 아니라
-	 * 검증 단계에서 걸려 `fieldErrors` 가 붙은 400 이 나가게 하기 위해서다.
+	 * 퀴즈셋은 카테고리 하나에 속한다. 논-널이라 필드를 생략하면 역직렬화 단계에서 걸린다
+	 * (`ownerId` 와 같은 처리 — `fieldErrors` 없는 `C001`).
 	 */
-	@field:Schema(description = "카테고리 ID 목록 (최소 1개)", example = "[1, 3]")
-	@field:Size(min = 1, message = "카테고리는 최소 1개 이상 선택해야 합니다.")
-	val categoryIds: List<Long> = emptyList(),
+	@field:Schema(description = "카테고리 ID", example = "1")
+	@field:Positive(message = "카테고리 ID는 양수여야 합니다.")
+	val categoryId: Long,
 )
 
 
@@ -59,9 +57,9 @@ data class QuizSetUpdateRequest(
     @field:NotNull(message = "공개 범위는 필수 입니다.")
     val visibility: Visibility = Visibility.PUBLIC,
 
-    @field:Schema(description = "카테고리 ID 목록 (최소 1개)", example = "[1, 3]")
-    @field:Size(min = 1, message = "카테고리는 최소 1개 이상 선택해야 합니다.")
-    val categoryIds: List<Long> = emptyList(),
+    @field:Schema(description = "카테고리 ID", example = "1")
+    @field:Positive(message = "카테고리 ID는 양수여야 합니다.")
+    val categoryId: Long,
 
 )
 
@@ -69,9 +67,9 @@ data class QuizSetUpdateRequest(
  * 퀴즈셋 응답.
  *
  * **`from` 은 반드시 트랜잭션 안에서 호출한다.** `open-in-view: false` 이고
- * `owner`·`categories` 가 모두 LAZY 라, 컨트롤러에서 매핑하면 `LazyInitializationException` 이 난다.
+ * `owner`·`category` 가 모두 LAZY 라, 컨트롤러에서 매핑하면 `LazyInitializationException` 이 난다.
  *
- * 목록 조회에서는 `categories` 가 퀴즈셋마다 추가 쿼리를 부르므로 조회 쿼리에서 fetch join 으로 함께 가져와야 한다.
+ * 목록 조회에서는 둘 다 퀴즈셋마다 추가 쿼리를 부르므로 조회 쿼리에서 fetch join 으로 함께 가져와야 한다.
  */
 @Schema(description = "퀴즈셋 정보")
 data class QuizSetResponse(
@@ -102,8 +100,8 @@ data class QuizSetResponse(
 	@field:Schema(description = "퀴즈 개수", example = "20")
 	val quizCount: Int,
 
-	@field:Schema(description = "카테고리 목록")
-	val categories: List<CategoryResponse>,
+	@field:Schema(description = "카테고리")
+	val category: CategoryResponse,
 
 	@field:Schema(description = "생성 시각")
 	val createdAt: Instant,
@@ -121,7 +119,7 @@ data class QuizSetResponse(
 			visibility = quizSet.visibility,
 			likeCount = quizSet.likeCount,
 			quizCount = quizSet.quizzes.size,
-			categories = quizSet.categories.map { CategoryResponse.from(it.category) },
+			category = CategoryResponse.from(quizSet.category),
 			createdAt = quizSet.createdAt,
 			updatedAt = quizSet.updatedAt,
 		)

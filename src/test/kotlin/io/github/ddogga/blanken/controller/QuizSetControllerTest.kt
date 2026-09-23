@@ -50,7 +50,7 @@ class QuizSetControllerTest(
 			// 퀴즈셋 생성 플로우상 생성 직후에는 퀴즈가 없음.
 			jsonPath("$.quizCount") { value(0) }
 			jsonPath("$.likeCount") { value(0) }
-			jsonPath("$.categories[0].name") { value("토익") }
+			jsonPath("$.category.name") { value("토익") }
 		}
 	}
 
@@ -90,7 +90,7 @@ class QuizSetControllerTest(
 	@Test
 	fun `404_존재하지_않는_카테고리_퀴즈셋_생성_실패`() {
 		// given
-		every { quizSetService.create(any()) } throws CategoryNotFoundException(listOf(7L, 9L))
+		every { quizSetService.create(any()) } throws CategoryNotFoundException(MISSING_CATEGORY_ID)
 
 		// when & then — 어떤 id 가 없었는지는 로그로만 남고 응답에는 표준 메시지만 나간다.
 		mockMvc.post("/api/quiz-sets") {
@@ -103,20 +103,6 @@ class QuizSetControllerTest(
 		}
 	}
 
-	/** 카테고리 없는 퀴즈셋은 카테고리 필터 검색에 잡히지 않으므로 최소 1개를 요구한다. */
-	@Test
-	fun `400_퀴즈셋_생성_카테고리_미선택_실패`() {
-		// when & then
-		mockMvc.post("/api/quiz-sets") {
-			contentType = MediaType.APPLICATION_JSON
-			content = """{"ownerId":$OWNER_ID,"title":"$TITLE","categoryIds":[]}"""
-		}.andExpect {
-			status { isBadRequest() }
-			jsonPath("$.code") { value("C001") }
-			jsonPath("$.fieldErrors[*].field") { value(org.hamcrest.Matchers.hasItem("categoryIds")) }
-		}
-	}
-
 	/**
 	 * 역직렬화 자체가 실패하는 경우. `@Valid` 는 돌기도 전이라 `fieldErrors` 가 없다.
 	 * 핸들러가 없으면 스프링 기본 에러 바디가 나가 응답 형식이 둘로 갈라진다.
@@ -126,7 +112,7 @@ class QuizSetControllerTest(
 		// when & then — ownerId 누락 (Kotlin 논-널 필드)
 		mockMvc.post("/api/quiz-sets") {
 			contentType = MediaType.APPLICATION_JSON
-			content = """{"title":"$TITLE","categoryIds":[1]}"""
+			content = """{"title":"$TITLE","categoryId":1}"""
 		}.andExpect {
 			status { isBadRequest() }
 			jsonPath("$.code") { value("C001") }
@@ -160,7 +146,7 @@ class QuizSetControllerTest(
 		visibility = Visibility.PUBLIC,
 		likeCount = 0,
 		quizCount = 0,
-		categories = listOf(CategoryResponse(id = 1L, name = "토익")),
+		category = CategoryResponse(id = 1L, name = "토익"),
 		createdAt = CREATED_AT,
 		updatedAt = CREATED_AT,
 	)
@@ -170,10 +156,11 @@ class QuizSetControllerTest(
 		private const val OWNER_ID = 1L
 		private const val NICKNAME = "blanken"
 		private const val TITLE = "토익 빈출 동사"
+		private const val MISSING_CATEGORY_ID = 7L
 		private const val REQUEST_BODY =
-			"""{"ownerId":1,"title":"토익 빈출 동사","description":"30선","visibility":"PUBLIC","categoryIds":[1]}"""
+			"""{"ownerId":1,"title":"토익 빈출 동사","description":"30선","visibility":"PUBLIC","categoryId":1}"""
 		private const val UPDATE_REQUEST_BODY =
-			"""{"title":"토플 빈출 구동사","description":"100선","visibility":"PRIVATE","categoryIds":[3,4]}"""
+			"""{"title":"토플 빈출 구동사","description":"100선","visibility":"PRIVATE","categoryId":3}"""
 		private val CREATED_AT: Instant = Instant.parse("2026-09-02T00:00:00Z")
 	}
 }
