@@ -27,7 +27,8 @@ class Quiz(
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id")
 	val id: Long? = null,
-) {
+
+) : BaseTimeEntity() {
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "quiz_set_id", nullable = false)
@@ -47,6 +48,7 @@ class Quiz(
     fun updateQuizSet(newQuizSet : QuizSet) {
         this.quizSet.removeQuiz(this)
         this.quizSet = newQuizSet
+        newQuizSet.addQuiz(this)
     }
 
 

@@ -45,7 +45,8 @@ class QuizSetServiceTest {
 		val savedQuizSet = slot<QuizSet>()
 
 		every { userRepository.findById(OWNER_ID) } returns Optional.of(owner)
-		every { categoryRepository.findAllById(setOf(CATEGORY_ID_1, CATEGORY_ID_2)) } returns categories
+        every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, TITLE) } returns false
+        every { categoryRepository.findAllById(setOf(CATEGORY_ID_1, CATEGORY_ID_2)) } returns categories
 		every { quizSetRepository.save(capture(savedQuizSet)) } returns quizSet(owner, categories)
 
 		// when
@@ -116,6 +117,8 @@ class QuizSetServiceTest {
 	fun `존재하지_않는_카테고리로_생성시_CATEGORY_NOT_FOUND_예외를_던진다`() {
 		// given — 1 만 있고 7, 9 는 없다
 		val requestedIds = listOf(CATEGORY_ID_1, MISSING_CATEGORY_ID_1, MISSING_CATEGORY_ID_2)
+
+        every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, TITLE) } returns false
 		every { userRepository.findById(OWNER_ID) } returns Optional.of(user())
 		every { categoryRepository.findAllById(requestedIds.toSet()) } returns
 			listOf(category(CATEGORY_ID_1, "토익"))
@@ -144,6 +147,7 @@ class QuizSetServiceTest {
         val categories = listOf(category(CATEGORY_ID_1, "토익"), category(CATEGORY_ID_2, "비즈니스"))
         val newCategories = listOf(category(CATEGORY_ID_3, "일상회화"), category(CATEGORY_ID_4, "여행"))
 
+        every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, NEW_TITLE) } returns false
         every { categoryRepository.findAllById(setOf(CATEGORY_ID_3, CATEGORY_ID_4)) } returns newCategories
         every { quizSetRepository.findWithCategoriesById(QUIZ_SET_ID) } returns quizSet(owner, categories)
 
