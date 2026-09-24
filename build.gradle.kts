@@ -39,6 +39,13 @@ dependencies {
 	compileOnly("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+	// 부트 4 는 테스트 슬라이스를 모듈별 아티팩트로 쪼갰다. @DataJpaTest 는 여기에만 있다.
+	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
+	// Testcontainers. 버전은 부트 BOM 이 관리한다(2.0.5).
+	// 2.x 부터 모듈 아티팩트에 `testcontainers-` 접두사가 붙는다 — 1.x 의 `org.testcontainers:postgresql` 은 없다.
+	testImplementation("org.springframework.boot:spring-boot-testcontainers")
+	testImplementation("org.testcontainers:testcontainers-postgresql")
+	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 	// 스프링 부트 BOM 이 관리하지 않는 라이브러리라 버전을 직접 적는다.
 	testImplementation("io.mockk:mockk:1.14.11")

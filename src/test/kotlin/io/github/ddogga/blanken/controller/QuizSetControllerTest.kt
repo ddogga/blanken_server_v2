@@ -1,8 +1,10 @@
 package io.github.ddogga.blanken.controller
 
 import com.ninjasquad.springmockk.MockkBean
+import io.github.ddogga.blanken.domain.QuizSetOrderEnum
 import io.github.ddogga.blanken.domain.Visibility
 import io.github.ddogga.blanken.dto.category.CategoryResponse
+import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
@@ -13,8 +15,11 @@ import io.mockk.every
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.put
 import java.time.Instant
@@ -136,6 +141,64 @@ class QuizSetControllerTest(
 		}
 	}
 
+    @Test
+    fun `200_키워드_카테고리_기반_퀴즈셋_검색_성공`() {
+        // given
+
+        val pageable = PageRequest.of(0, 1)
+        every { quizSetService.search(KEYWORD, SEARCH_CATEGORY,
+            QuizSetOrderEnum.CREATE_AT_DESC, pageable) } returns pageableQuizSetResponse()
+
+        // when & then
+        mockMvc.get("/api/quiz-sets") {
+            param("keyword", KEYWORD)
+            param("categoryId", SEARCH_CATEGORY.toString())
+            param("orderEnum", QuizSetOrderEnum.CREATE_AT_DESC.name)
+            param("page", "0")
+            param("size", "1")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.totalPages") { value(1) }
+            jsonPath("$.totalElements") { value(1) }
+        }
+
+    }
+
+    @Test
+    fun `200_퀴즈셋_검색_조건_없이_전체_조회_성공`() {
+        // given
+
+        val pageable = PageRequest.of(0, 1)
+        every { quizSetService.search(null, null,
+            QuizSetOrderEnum.CREATE_AT_DESC, pageable) } returns pageableQuizSetResponse()
+
+        // when & then
+        mockMvc.get("/api/quiz-sets") {
+            param("orderEnum", QuizSetOrderEnum.CREATE_AT_DESC.name)
+            param("page", "0")
+            param("size", "1")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.totalPages") { value(1) }
+            jsonPath("$.totalElements") { value(1) }
+        }
+
+    }
+
+    @Test
+    fun `400_퀴즈셋_검색_정렬값_누락_실패`() {
+
+        // when & then
+        mockMvc.get("/api/quiz-sets") {
+            param("keyword", KEYWORD)
+            param("categoryId", SEARCH_CATEGORY.toString())
+            param("page", "0")
+            param("size", "10")
+        }.andExpect {
+            status { isBadRequest() }
+        }
+
+    }
 
 	private fun quizSetResponse(): QuizSetResponse = QuizSetResponse(
 		id = QUIZ_SET_ID,
@@ -151,6 +214,19 @@ class QuizSetControllerTest(
 		updatedAt = CREATED_AT,
 	)
 
+    private fun pageableQuizSetResponse(): PageResponse<QuizSetResponse> = PageResponse(
+
+        content = listOf(quizSetResponse()),
+        page = 0,
+        size = 1,
+        totalElements = 1,
+        totalPages = 1,
+        first = true,
+        last = true,
+
+    )
+
+
 	companion object {
 		private const val QUIZ_SET_ID = 1L
 		private const val OWNER_ID = 1L
@@ -162,5 +238,7 @@ class QuizSetControllerTest(
 		private const val UPDATE_REQUEST_BODY =
 			"""{"title":"토플 빈출 구동사","description":"100선","visibility":"PRIVATE","categoryId":3}"""
 		private val CREATED_AT: Instant = Instant.parse("2026-09-02T00:00:00Z")
+        private const val KEYWORD = "토익"
+        private const val SEARCH_CATEGORY = 1L
 	}
 }
