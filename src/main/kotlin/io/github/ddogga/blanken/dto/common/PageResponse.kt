@@ -34,6 +34,17 @@ data class PageResponse<T>(
 	val last: Boolean,
 ) {
 	companion object {
+
+		fun <T : Any> from(page: Page<T>): PageResponse<T> = PageResponse(
+			content = page.content,
+			page = page.number,
+			size = page.size,
+			totalElements = page.totalElements,
+			totalPages = page.totalPages,
+			first = page.isFirst,
+			last = page.isLast,
+		)
+
 		fun <E : Any, T> from(page: Page<E>, mapper: (E) -> T): PageResponse<T> = PageResponse(
 			content = page.content.map(mapper),
 			page = page.number,

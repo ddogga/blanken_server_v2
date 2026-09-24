@@ -1,5 +1,7 @@
 package io.github.ddogga.blanken.controller
 
+import io.github.ddogga.blanken.domain.QuizSetOrderEnum
+import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
@@ -8,13 +10,17 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import org.springframework.data.domain.Pageable
+import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestParam
 import java.net.URI
 
 
@@ -39,4 +45,17 @@ class QuizSetController(
         @PathVariable quizSetId: Long,
         @Valid @RequestBody request: QuizSetUpdateRequest
     ): QuizSetResponse = quizSetService.update(quizSetId, request)
+
+    @Operation(summary = "퀴즈셋 검색", description = "퀴즈셋을 키워드, 카테고리로 검색합니다.")
+    @GetMapping
+    fun search(
+        @RequestParam(required = false) keyword: String?,
+        @RequestParam(required = false) categoryId: Long?,
+        @RequestParam(required = true) orderEnum: QuizSetOrderEnum,
+        @PageableDefault(size = 20)
+        pageable: Pageable,
+    ): PageResponse<QuizSetResponse> =
+        quizSetService.search(keyword, categoryId, orderEnum, pageable)
+
+
 }

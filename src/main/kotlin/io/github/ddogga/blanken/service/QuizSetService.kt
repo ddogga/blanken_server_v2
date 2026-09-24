@@ -2,6 +2,8 @@ package io.github.ddogga.blanken.service
 
 import io.github.ddogga.blanken.domain.Category
 import io.github.ddogga.blanken.domain.QuizSet
+import io.github.ddogga.blanken.domain.QuizSetOrderEnum
+import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
@@ -12,6 +14,7 @@ import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.CategoryRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
 import io.github.ddogga.blanken.repository.UserRepository
+import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -57,6 +60,14 @@ class QuizSetService(
 
         return QuizSetResponse.from(quizSet)
     }
+
+    fun search(
+        keyword: String?,
+        categoryId: Long?,
+        orderEnum: QuizSetOrderEnum,
+        pageable: Pageable,
+    ): PageResponse<QuizSetResponse> =
+        PageResponse.from(quizSetRepository.searchQuizSet(keyword, categoryId, orderEnum, pageable))
 
 
 

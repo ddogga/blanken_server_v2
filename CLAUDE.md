@@ -8,6 +8,23 @@
 
 ---
 
+## 0. 작업 방식 (가장 먼저 지킬 것)
+
+**코드를 수정하기 전에 반드시 사용자에게 먼저 묻는다.** 승인 없이 파일을 편집하지 않는다.
+
+- **질문에는 답만 한다.** "어떻게 해야 해?", "이게 맞아?", "이거 동작할까?", "어떻게 하는 게 좋을까?" 는 **설명을 요청한 것이지 코드를 고쳐달라는 뜻이 아니다.**
+  답을 하면서 필요하면 코드 예시를 **메시지 안에** 보여주고, 파일에 반영할지는 사용자가 정한다.
+- **편집해도 되는 경우는 사용자가 명시적으로 요청했을 때뿐이다.** "구현해줘", "수정해줘", "정리해줘", "추가해줘" 처럼 행위를 지시한 경우.
+  그 경우에도 **요청한 범위를 벗어나는 파일은 건드리지 않는다.** 범위 밖에 손댈 필요가 생기면 먼저 말하고 승인을 받는다.
+- **읽기·조사·빌드·테스트 실행은 물어보지 않아도 된다.** 파일을 바꾸지 않는 행위는 자유롭게 한다.
+  단, 앱을 띄우거나 DB에 데이터를 넣고 지우는 것처럼 **상태를 바꾸는 검증**은 미리 알린다.
+- 고칠 곳을 발견하면 **고치지 말고 보고한다.** 어디가 왜 문제인지, 어떻게 고치면 되는지까지만 제시한다.
+
+이 프로젝트는 학습과 포트폴리오를 겸하므로, **코드를 직접 쓰는 주체는 사용자**다.
+에이전트가 앞서 나가 고쳐 버리면 사용자가 판단할 기회와 맥락을 잃는다.
+
+---
+
 ## 1. 제품 개요
 
 사용자가 직접 만든 영어 문장으로 빈칸 채우기 퀴즈셋을 만들어 공유하고, 다른 유저와 실시간 선착순 대결까지 하는 학습 앱.
@@ -32,12 +49,13 @@ M1 진행 중 — 엔티티 계층까지 완료.
 | DB | PostgreSQL (`ddl-auto: update`, `open-in-view: false`) |
 | API 문서 | springdoc-openapi 3.1.0 — `/swagger-ui.html` |
 | 검증 | `spring-boot-starter-validation` — 요청 DTO에 `@Valid` |
+| 쿼리 빌더 | QueryDSL (`querydsl-jpa` + `querydsl-apt`, **`jakarta` 분류자 필수**). 버전은 부트 BOM이 관리(5.1.0)하므로 명시하지 않는다. Q클래스 생성에 `kotlin("kapt")` 플러그인 필요 |
 | 비밀번호 해싱 | `spring-security-crypto`의 BCrypt (**starter-security 아님** — 필터체인 미적용) |
 | 테스트 | JUnit5 + MockK 1.14.11 + springmockk 5.0.1 (둘 다 부트 BOM 미관리 — 버전 직접 명시) |
 | 패키지 루트 | `io.github.ddogga.blanken` |
 
 기존 코드
-- `config/` — `OpenApiConfig`, `JpaAuditingConfig`, `PasswordEncoderConfig`
+- `config/` — `OpenApiConfig`, `JpaAuditingConfig`, `PasswordEncoderConfig`, `QuerydslConfig`(`JPAQueryFactory` 빈)
 - `domain/` — `BaseTimeEntity`, `User`, `QuizSet`, `Quiz`, `Category`, `QuizSetLike`, `StudyHistory`, `StudyHistoryDetail`, `Visibility`
 - `repository/` — `UserRepository`
 - `service/` — `UserService`
@@ -49,6 +67,23 @@ M1 진행 중 — 엔티티 계층까지 완료.
 엔티티는 컨트롤러 밖으로 나가지 않는다 — 요청·응답은 항상 `dto`.
 
 **아직 없는 것** (필요해지면 추가): Spring Security, Redis(`spring-boot-starter-data-redis`), WebSocket, 메시지큐 클라이언트, 마이그레이션 도구(Flyway 등), Docker/K8s 매니페스트.
+
+**쿼리 빌더로 Kotlin JDSL이 아니라 QueryDSL을 쓴다** (2026-09-23 결정).
+
+Kotlin JDSL을 먼저 붙여 봤지만 **부트 4.1에서 아예 동작하지 않는다.** 실제로 띄워서 확인한 결과:
+
+```
+java.lang.ClassNotFoundException: org.springframework.data.jpa.repository.query.StringQuery
+  at o.s.data.jpa.repository.query.QueryEnhancerFactoryAdaptor.forQuery(...)
+     ~[spring-data-jpa-support-3.5.5.jar]
+  at c.l.kotlinjdsl.support.spring.data.jpa.JpqlEntityManagerUtils.createEnhancedQuery
+```
+
+JDSL의 `spring-data-jpa-support`는 스프링 내부에 접근하려고 **`org.springframework.data.jpa.repository.query` 패키지에 자기 클래스(`QueryEnhancerFactoryAdaptor`)를 끼워 넣어** 배포한다. 그 클래스가 Spring Data JPA 4에서 제거된 `StringQuery`를 참조해서 터진다. `findPage`뿐 아니라 `findAll`도 전부 `createEnhancedQuery`를 거치므로 우회할 수 없고, **3.5.5가 최신이라 버전을 올려서 해결되지도 않는다.**
+
+QueryDSL은 `EntityManager.createQuery`라는 **공개 API만** 쓴다. 그래서 Spring Data 버전이 올라가도 영향을 받지 않는다. 이게 두 라이브러리의 구조적 차이고, 이번 선택의 실질적인 근거다 — 문법 취향이 아니라 **프레임워크 내부에 의존하느냐**의 문제다.
+
+> 쿼리 빌더는 **동적 조건자**(키워드·카테고리 등 선택적 필터 조합)를 위한 것이지, 컬렉션 fetch join + 페이징의 메모리 문제(`HHH90003004 ... applying in memory`)를 풀어주지 않는다. 그건 빌더가 아니라 쿼리 모양(id만 페이징 → 그 페이지만 fetch join)으로 해결한다.
 
 > **주의**: `ddl-auto: update`는 M1 한정. 컬럼 삭제·타입 변경을 반영하지 못하고 운영에 쓸 수 없다. 스키마가 굳으면 Flyway로 이전할 것.
 > Redis 의존성이 아직 없어 **진행 상태·이어풀기는 구현 불가** — 학습 풀이 API 착수 전에 `spring-boot-starter-data-redis`를 추가해야 한다 (4.3이 Redis 전용으로 결정되면서 M1 필수 의존성이 되었다).
