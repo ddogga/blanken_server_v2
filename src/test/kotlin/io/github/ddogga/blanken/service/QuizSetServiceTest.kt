@@ -8,7 +8,7 @@ import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.ErrorCode
-import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
+import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.CategoryRepository
@@ -155,7 +155,7 @@ class QuizSetServiceTest {
 		every { quizSetRepository.findWithCategoryById(MISSING_QUIZ_SET_ID) } returns null
 
 		// when
-		val exception = assertFailsWith<QuizSetNotFoundExceptions> {
+		val exception = assertFailsWith<QuizSetNotFoundException> {
 			quizSetService.update(MISSING_QUIZ_SET_ID, updateRequest())
 		}
 

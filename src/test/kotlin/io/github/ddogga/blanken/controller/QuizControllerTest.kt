@@ -4,7 +4,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.github.ddogga.blanken.domain.Quiz
 import io.github.ddogga.blanken.dto.quiz.QuizResponse
 import io.github.ddogga.blanken.exception.QuizNotFoundException
-import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
+import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.service.QuizService
 import io.mockk.every
 import org.hamcrest.Matchers.hasItem
@@ -49,7 +49,7 @@ class QuizControllerTest(
     @Test
     fun `404_존재하지_않는_퀴즈셋_퀴즈_생성_실패`() {
         // given
-        every { quizService.create(QUIZ_SET_ID, any()) } throws QuizSetNotFoundExceptions(QUIZ_SET_ID)
+        every { quizService.create(QUIZ_SET_ID, any()) } throws QuizSetNotFoundException(QUIZ_SET_ID)
 
         // when & then — 어떤 id 였는지는 로그로만 남고 응답에는 표준 메시지만 나간다.
         mockMvc.post("/api/quiz-sets/$QUIZ_SET_ID/quizzes") {
@@ -138,7 +138,7 @@ class QuizControllerTest(
     fun `404_존재하지_않는_소속_퀴즈셋_변경_실패`() {
         // given — 옮겨 갈 대상 퀴즈셋이 없는 경우
         every { quizService.changeQuizSet(QUIZ_ID, NEW_QUIZ_SET_ID) } throws
-                QuizSetNotFoundExceptions(NEW_QUIZ_SET_ID)
+                QuizSetNotFoundException(NEW_QUIZ_SET_ID)
 
         // when & then
         mockMvc.patch("/api/quiz-sets/$NEW_QUIZ_SET_ID/quizzes/$QUIZ_ID")

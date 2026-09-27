@@ -7,7 +7,7 @@ import io.github.ddogga.blanken.dto.category.CategoryResponse
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
-import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
+import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.service.QuizSetService
@@ -128,7 +128,7 @@ class QuizSetControllerTest(
 	@Test
 	fun `404_존재하지_않는_퀴즈셋_수정_실패`() {
 		// given
-		every { quizSetService.update(QUIZ_SET_ID, any()) } throws QuizSetNotFoundExceptions(QUIZ_SET_ID)
+		every { quizSetService.update(QUIZ_SET_ID, any()) } throws QuizSetNotFoundException(QUIZ_SET_ID)
 
 		// when & then — 본문은 @Valid 를 통과하는 값이어야 서비스까지 도달해 404 가 나온다.
 		mockMvc.put("/api/quiz-sets/$QUIZ_SET_ID") {

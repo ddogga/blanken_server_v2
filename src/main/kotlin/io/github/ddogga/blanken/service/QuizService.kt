@@ -5,7 +5,7 @@ import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.dto.quiz.QuizRequest
 import io.github.ddogga.blanken.dto.quiz.QuizResponse
 import io.github.ddogga.blanken.exception.QuizNotFoundException
-import io.github.ddogga.blanken.exception.QuizSetNotFoundExceptions
+import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.repository.QuizRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
 import org.springframework.data.repository.findByIdOrNull
@@ -61,7 +61,7 @@ class QuizService (
 
     private fun findQuizSetById(quizSetId : Long): QuizSet {
         return quizSetRepository.findByIdOrNull(quizSetId)
-            ?: throw QuizSetNotFoundExceptions(quizSetId)
+            ?: throw QuizSetNotFoundException(quizSetId)
     }
 
     private fun findQuizById(quizId : Long): Quiz {
