@@ -5,6 +5,7 @@ import io.github.ddogga.blanken.domain.QuizSetLike
 import io.github.ddogga.blanken.domain.User
 import io.github.ddogga.blanken.dto.quiz.QuizSetLikeRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetLikeResponse
+import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.exception.QuizSetLikeDuplicationException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.exception.UserNotFoundException
@@ -27,10 +28,10 @@ class QuizSetLikeService(
 
 
     @Transactional
-    fun addLikeQuizSet(request: QuizSetLikeRequest): QuizSetLikeResponse {
+    fun addLikeQuizSet(quizSetId: Long, userId: Long): QuizSetResponse {
         
-        val quizSet = findQuizSetById(request.quizSetId)
-        val user = findUserById(request.userId)
+        val quizSet = findQuizSetById(quizSetId)
+        val user = findUserById(userId)
 
         val quizSetLike = QuizSetLike(
             user = user,
@@ -38,12 +39,12 @@ class QuizSetLikeService(
         )
 
         return try {
-            val save = quizSetLikeRepository.saveAndFlush(quizSetLike)
-            quizSetRepository.addLikeCount(request.quizSetId)
-            val update = findQuizSetById(request.quizSetId)
-            QuizSetLikeResponse.from(save, update.likeCount)
+            quizSetLikeRepository.saveAndFlush(quizSetLike)
+            quizSetRepository.addLikeCount(quizSetId)
+            val update = findQuizSetById(quizSetId)
+            QuizSetResponse.from(update)
         } catch (ex: DataIntegrityViolationException) {
-            throw QuizSetLikeDuplicationException(request.quizSetId)
+            throw QuizSetLikeDuplicationException(quizSetId)
         }
 
     }

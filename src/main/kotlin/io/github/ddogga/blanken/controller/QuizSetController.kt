@@ -3,8 +3,6 @@ package io.github.ddogga.blanken.controller
 import io.github.ddogga.blanken.domain.QuizSetOrderEnum
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
-import io.github.ddogga.blanken.dto.quiz.QuizSetLikeRequest
-import io.github.ddogga.blanken.dto.quiz.QuizSetLikeResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.service.QuizSetLikeService
@@ -13,10 +11,10 @@ import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
-import jakarta.validation.constraints.NotNull
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -64,10 +62,23 @@ class QuizSetController(
 
 
     @Operation(summary = "퀴즈셋 좋아요 추가", description = "퀴즈셋 좋아요 카운트를 추가합니다.")
-    @PutMapping("/likes")
+    @PutMapping("/{quizSetId}/likes/{userId}")
     fun updateLikeCount(
-        @Valid @RequestBody request: QuizSetLikeRequest
-    ): QuizSetLikeResponse =
-        quizSetLikeService.addLikeQuizSet(request)
+        @Parameter(description = "퀴즈셋 ID", example = "1")
+        @PathVariable quizSetId: Long,
+        @Parameter(description = "유저 ID", example = "1")
+        @PathVariable userId: Long,
+    ): QuizSetResponse =
+        quizSetLikeService.addLikeQuizSet(quizSetId, userId)
+
+    @Operation(summary = "퀴즈셋 좋아요 취소", description = "퀴즈셋 좋아요를 취소합니다.")
+    @DeleteMapping("/{quizSetId}/likes/{userId}")
+    fun cancelLikeCount(
+        @Parameter(description = "퀴즈셋 ID", example = "1")
+        @PathVariable quizSetId: Long,
+        @Parameter(description = "유저 ID", example = "1")
+        @PathVariable userId: Long,
+    ): QuizSetResponse =
+        quizSetLikeService.cancelLikeQuizSet(quizSetId, userId)
 
 }

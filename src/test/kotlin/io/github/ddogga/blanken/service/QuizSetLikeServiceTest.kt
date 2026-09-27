@@ -5,7 +5,6 @@ import io.github.ddogga.blanken.domain.Category
 import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.domain.User
 import io.github.ddogga.blanken.domain.Visibility
-import io.github.ddogga.blanken.dto.quiz.QuizSetLikeRequest
 import io.github.ddogga.blanken.exception.ErrorCode
 import io.github.ddogga.blanken.exception.QuizSetLikeDuplicationException
 import io.github.ddogga.blanken.repository.CategoryRepository
@@ -47,14 +46,12 @@ class QuizSetLikeServiceTest(
     fun `퀴즈셋_좋아요_추가_로직을_정상적으로_수행한다`() {
 
         // when
-        val response = quizSetLikeService.addLikeQuizSet(quizSetLikeRequest())
+        val response = quizSetLikeService.addLikeQuizSet(QUIZ_SET_ID, OWNER_ID)
 
         // then
         val update = quizSetRepository.findById(QUIZ_SET_ID).get()
 
-        assertEquals(OWNER_ID, response.userId)
-        assertEquals(NICKNAME, response.userNickName)
-        assertEquals(QUIZ_SET_ID, response.quizSetId)
+        assertEquals(QUIZ_SET_ID, response.id)
         assertEquals(update.likeCount, response.likeCount)
 
     }
@@ -63,11 +60,11 @@ class QuizSetLikeServiceTest(
     fun `퀴즈셋_좋아요_중복_생성시_중복_예외를_던진다`() {
 
         // given
-        quizSetLikeService.addLikeQuizSet(quizSetLikeRequest())
+        quizSetLikeService.addLikeQuizSet(QUIZ_SET_ID, OWNER_ID)
 
         // when
         val exception = assertFailsWith<QuizSetLikeDuplicationException> {
-            quizSetLikeService.addLikeQuizSet(quizSetLikeRequest())
+            quizSetLikeService.addLikeQuizSet(QUIZ_SET_ID, OWNER_ID)
         }
 
         // then
@@ -80,9 +77,6 @@ class QuizSetLikeServiceTest(
         // TODO
     }
 
-
-    private fun quizSetLikeRequest(): QuizSetLikeRequest =
-        QuizSetLikeRequest(OWNER_ID, QUIZ_SET_ID)
 
     private fun user(): User =
         User(email = EMAIL, password = "hashed", nickname = NICKNAME)
