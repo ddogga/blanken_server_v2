@@ -40,7 +40,8 @@ class QuizSetLikeService(
         return try {
             val save = quizSetLikeRepository.saveAndFlush(quizSetLike)
             quizSetRepository.addLikeCount(request.quizSetId)
-            QuizSetLikeResponse.from(save)
+            val update = findQuizSetById(request.quizSetId)
+            QuizSetLikeResponse.from(save, update.likeCount)
         } catch (ex: DataIntegrityViolationException) {
             throw QuizSetLikeDuplicationException(request.quizSetId)
         }

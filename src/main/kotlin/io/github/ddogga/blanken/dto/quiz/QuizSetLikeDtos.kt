@@ -46,12 +46,12 @@ data class QuizSetLikeResponse(
 
 ) {
     companion object {
-        fun from(quizSetLike : QuizSetLike) : QuizSetLikeResponse = QuizSetLikeResponse(
+        fun from(quizSetLike : QuizSetLike, likeCount : Int) : QuizSetLikeResponse = QuizSetLikeResponse(
             userId = requireNotNull(quizSetLike.user.id) {"저장된 유저만 응답으로 변환 할 수 있습니다."},
             userNickName = quizSetLike.user.nickname,
             quizSetId = requireNotNull(quizSetLike.quizSet.id) {"저장된 퀴즈셋만 응답으로 변환 할 수 있습니다."},
             title = quizSetLike.quizSet.title,
-            likeCount = quizSetLike.quizSet.likeCount,
+            likeCount = likeCount,
             quizSetLikeId = requireNotNull(quizSetLike.id) {"저장된 퀴즈셋 좋아요만 응답으로 변환 할 수 있습니다."}
         )
     }
