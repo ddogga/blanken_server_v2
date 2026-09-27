@@ -37,7 +37,7 @@ class UserService(
 
 		return try {
 			UserResponse.from(userRepository.saveAndFlush(user))
-		} catch (e: DataIntegrityViolationException) {
+		} catch (ex: DataIntegrityViolationException) {
 			throw DuplicateEmailException(request.email)
 		}
 	}

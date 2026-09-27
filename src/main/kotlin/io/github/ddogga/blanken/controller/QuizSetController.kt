@@ -68,6 +68,6 @@ class QuizSetController(
     fun updateLikeCount(
         @Valid @RequestBody request: QuizSetLikeRequest
     ): QuizSetLikeResponse =
-        quizSetLikeService.likeQuizSet(request)
+        quizSetLikeService.addLikeQuizSet(request)
 
 }
