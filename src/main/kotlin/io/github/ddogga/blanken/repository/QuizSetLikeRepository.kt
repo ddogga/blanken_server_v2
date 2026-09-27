@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface QuizSetLikeRepository : JpaRepository<QuizSetLike, Long>{
 
+    fun deleteByUserIdAndQuizSetId(userId: Long, quizSetId: Long): Int
 
 
 }

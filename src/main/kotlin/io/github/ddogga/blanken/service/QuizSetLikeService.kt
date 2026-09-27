@@ -48,6 +48,22 @@ class QuizSetLikeService(
         }
 
     }
+
+    @Transactional
+    fun cancelLikeQuizSet(quizSetId: Long, userId: Long): QuizSetResponse {
+
+        findQuizSetById(quizSetId)
+        findUserById(userId)
+
+        if (quizSetLikeRepository.deleteByUserIdAndQuizSetId(userId, quizSetId) == 1) {
+            quizSetRepository.cancelLikeCount(quizSetId)
+        }
+
+        return QuizSetResponse.from(findQuizSetById(quizSetId))
+    }
+
+
+
     
     
     private fun findQuizSetById(quizSetId: Long): QuizSet =

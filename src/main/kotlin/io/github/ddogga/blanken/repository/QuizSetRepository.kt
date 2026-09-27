@@ -33,4 +33,17 @@ interface QuizSetRepository : JpaRepository<QuizSet, Long>, QuizSetCustomReposit
     )
     fun addLikeCount(id: Long): Int
 
+
+    // 원자적 update를 위해 더티 체킹 대신 @Query를 사용
+    @Modifying(clearAutomatically = true)
+    @Query(
+        """
+        update QuizSet qs
+        set qs.likeCount = qs.likeCount - 1
+        where qs.id = :id
+        and qs.likeCount > 0
+        """
+    )
+    fun cancelLikeCount(id: Long): Int
+
 }
