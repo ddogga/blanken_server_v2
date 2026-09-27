@@ -67,9 +67,8 @@ class QuizSetService(
         orderEnum: QuizSetOrderEnum,
         pageable: Pageable,
     ): PageResponse<QuizSetResponse> =
-        PageResponse.from(quizSetRepository.searchQuizSet(keyword, categoryId, orderEnum, pageable))
-
-
+        PageResponse.from(quizSetRepository
+            .searchQuizSet(keyword, categoryId, orderEnum, pageable))
 
     private fun findCategoryById(categoryId: Long): Category =
         categoryRepository.findByIdOrNull(categoryId)

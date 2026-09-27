@@ -3,6 +3,8 @@ package io.github.ddogga.blanken.repository.querydsl
 import com.querydsl.core.types.OrderSpecifier
 import com.querydsl.core.types.Predicate
 import com.querydsl.core.types.Projections
+import com.querydsl.core.types.dsl.BooleanExpression
+import com.querydsl.core.types.dsl.Expressions
 import com.querydsl.jpa.impl.JPAQueryFactory
 import io.github.ddogga.blanken.domain.QCategory.category
 import io.github.ddogga.blanken.domain.QQuizSet.quizSet
@@ -67,10 +69,32 @@ class QuizSetCustomRepositoryImpl (
     private fun searchPredicates(keyword: String?, categoryId: Long?): Array<Predicate?> {
         return arrayOf(
             quizSet.visibility.eq(Visibility.PUBLIC),
-            keyword?.takeIf { it.isNotBlank() }?.let { quizSet.title.upper().contains(it.uppercase()) },
+            keyword?.takeIf { it.isNotBlank() }?.let { titleContains(it)},
             categoryId?.let { quizSet.category.id.eq(categoryId) }
         )
     }
+
+
+    /**
+     *
+     * postgreSQL의 GIN인덱스 사용을 위해 lower() 함수 사용을 우회해야 함.
+     *
+     * ilike은 JPQL 표준에는 없는 PostgreSQL 전용 문법이라 Expressions.booleanTemplate를 활용해
+     * 쿼리를 직접 렌더링
+     */
+    private fun titleContains(keyword: String): BooleanExpression =
+        Expressions.booleanTemplate("{0} ilike {1}", quizSet.title, "%${escapeForLike(keyword)}%")
+
+
+    /**
+     * QueryDSL의 `contains()` 제공하는 이스케이프 설정을
+     * 템플릿으로 변경시 직접 처리 해야 함.
+     * */
+    private fun escapeForLike(keyword: String): String =
+        keyword.replace("\\", "\\\\")
+            .replace("%", "\\%")
+            .replace("_", "\\_")
+
 
 
     private fun orderSpecifiers(orderEnum: QuizSetOrderEnum): Array<OrderSpecifier<*>> {

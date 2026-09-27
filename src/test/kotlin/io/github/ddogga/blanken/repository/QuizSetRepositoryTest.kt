@@ -17,6 +17,7 @@ import kotlin.test.assertEquals
 
 @DataJpaTest
 @Import(PostgresTestContainerConfig::class, QuerydslConfig::class)
+@Sql(scripts = ["/schema.sql"], executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @Sql("/data.sql")
 class QuizSetRepositoryTest (
     @Autowired private val entityManager: EntityManager,
