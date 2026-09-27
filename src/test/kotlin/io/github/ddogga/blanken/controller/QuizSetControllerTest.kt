@@ -10,6 +10,7 @@ import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
+import io.github.ddogga.blanken.service.QuizSetLikeService
 import io.github.ddogga.blanken.service.QuizSetService
 import io.mockk.every
 import org.junit.jupiter.api.Test
@@ -36,6 +37,9 @@ class QuizSetControllerTest(
 
 	@MockkBean
 	private lateinit var quizSetService: QuizSetService
+
+    @MockkBean
+    private lateinit var quizSetLikeService: QuizSetLikeService
 
 	@Test
 	fun `201_퀴즈셋_생성_성공`() {

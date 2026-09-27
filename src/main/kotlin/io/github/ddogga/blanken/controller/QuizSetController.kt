@@ -3,13 +3,17 @@ package io.github.ddogga.blanken.controller
 import io.github.ddogga.blanken.domain.QuizSetOrderEnum
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
+import io.github.ddogga.blanken.dto.quiz.QuizSetLikeRequest
+import io.github.ddogga.blanken.dto.quiz.QuizSetLikeResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
+import io.github.ddogga.blanken.service.QuizSetLikeService
 import io.github.ddogga.blanken.service.QuizSetService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
+import jakarta.validation.constraints.NotNull
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
@@ -29,6 +33,7 @@ import java.net.URI
 @RequestMapping("/api/quiz-sets")
 class QuizSetController(
     private val quizSetService: QuizSetService,
+    private val quizSetLikeService: QuizSetLikeService
 ) {
 
     @Operation(summary = "퀴즈셋 생성", description = "퀴즈셋을 생성합니다.")
@@ -57,5 +62,12 @@ class QuizSetController(
     ): PageResponse<QuizSetResponse> =
         quizSetService.search(keyword, categoryId, orderEnum, pageable)
 
+
+    @Operation(summary = "퀴즈셋 좋아요 추가", description = "퀴즈셋 좋아요 카운트를 추가합니다.")
+    @PutMapping("/likes")
+    fun updateLikeCount(
+        @Valid @RequestBody request: QuizSetLikeRequest
+    ): QuizSetLikeResponse =
+        quizSetLikeService.likeQuizSet(request)
 
 }
