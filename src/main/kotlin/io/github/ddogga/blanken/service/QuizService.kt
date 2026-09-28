@@ -2,9 +2,11 @@ package io.github.ddogga.blanken.service
 
 import io.github.ddogga.blanken.domain.Quiz
 import io.github.ddogga.blanken.domain.QuizSet
+import io.github.ddogga.blanken.domain.Visibility
 import io.github.ddogga.blanken.dto.quiz.QuizRequest
 import io.github.ddogga.blanken.dto.quiz.QuizResponse
 import io.github.ddogga.blanken.exception.QuizNotFoundException
+import io.github.ddogga.blanken.exception.QuizSetAccessDeniedException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.repository.QuizRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
@@ -59,6 +61,19 @@ class QuizService (
         }
 
     }
+
+    fun getQuizList(quizSetId: Long): List<QuizResponse> {
+
+        val quizSet = findQuizSetById(quizSetId)
+        if (quizSet.visibility != Visibility.PUBLIC) {
+            throw QuizSetAccessDeniedException(quizSetId)
+        }
+        return quizRepository.findAllByQuizSetId(quizSetId).map{quiz ->
+            QuizResponse.from(quiz, quizSetId)
+        }
+
+    }
+
 
 
     private fun findQuizSetById(quizSetId : Long): QuizSet {

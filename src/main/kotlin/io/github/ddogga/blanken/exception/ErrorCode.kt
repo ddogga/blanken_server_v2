@@ -33,6 +33,7 @@ enum class ErrorCode(
     QUIZ_NOT_FOUND(HttpStatus.NOT_FOUND, "Q002", "퀴즈를 찾을 수 없습니다."),
     QUIZ_SET_TITLE_DUPLICATION(HttpStatus.CONFLICT, "Q003", "똑같은 이름의 퀴즈셋이 이미 존재합니다."),
     QUIZ_SET_LIKE_DUPLICATION(HttpStatus.CONFLICT, "Q004", "이미 좋아요를 누른 퀴즈셋입니다."),
+    QUIZ_SET_ACCESS_DENIED(HttpStatus.FORBIDDEN, "Q005", "접근 권한이 없는 퀴즈셋입니다."),
 
 
     // Category

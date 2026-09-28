@@ -8,3 +8,6 @@ class QuizSetTitleDuplicationException(val title: String) :
 
 class QuizSetLikeDuplicationException(val quizSetId: Long) :
         BusinessException(ErrorCode.QUIZ_SET_LIKE_DUPLICATION, "이미 좋아요를 누른 퀴즈셋 입니다. (id=$quizSetId)")
+
+class QuizSetAccessDeniedException(val quizSetId: Long) :
+        BusinessException(ErrorCode.QUIZ_SET_ACCESS_DENIED, "접근 권한이 없는 퀴즈셋입니다. (id=$quizSetId)")

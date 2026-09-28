@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -57,6 +58,12 @@ class QuizController (
     ): List<QuizResponse> = quizService.changeQuizSet(quizIds, quizSetId)
 
 
+    @Operation(summary = "퀴즈셋 리스트 조회", description = "quizSetId로 소속 퀴즈 리스트를 조회합니다.")
+    @GetMapping
+    fun getQuizList(
+        @Parameter(description = "quizSetId", example = "1")
+        @PathVariable quizSetId: Long,
+    ): List<QuizResponse> = quizService.getQuizList(quizSetId)
 
 
 }
