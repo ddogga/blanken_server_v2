@@ -3,8 +3,7 @@ package io.github.ddogga.blanken.service
 import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.domain.QuizSetLike
 import io.github.ddogga.blanken.domain.User
-import io.github.ddogga.blanken.dto.quiz.QuizSetLikeRequest
-import io.github.ddogga.blanken.dto.quiz.QuizSetLikeResponse
+import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.exception.QuizSetLikeDuplicationException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundException
@@ -13,6 +12,7 @@ import io.github.ddogga.blanken.repository.QuizSetLikeRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
 import io.github.ddogga.blanken.repository.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -62,10 +62,10 @@ class QuizSetLikeService(
         return QuizSetResponse.from(findQuizSetById(quizSetId))
     }
 
+    fun getLikeQuizSets(userId: Long, pageable: Pageable): PageResponse<QuizSetResponse> =
+        PageResponse.from(quizSetLikeRepository
+            .getLikeQuizSets(userId, pageable))
 
-
-    
-    
     private fun findQuizSetById(quizSetId: Long): QuizSet =
         quizSetRepository.findByIdOrNull(quizSetId)
             ?: throw QuizSetNotFoundException(quizSetId)

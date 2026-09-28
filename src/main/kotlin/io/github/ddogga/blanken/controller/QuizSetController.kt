@@ -81,4 +81,14 @@ class QuizSetController(
     ): QuizSetResponse =
         quizSetLikeService.cancelLikeQuizSet(quizSetId, userId)
 
+    @Operation(summary = "좋아요 퀴즈셋 목록 조회", description = "좋아요를 누른 퀴즈셋 목록을 조회합니다.")
+    @GetMapping("/likes/{userId}")
+    fun getLikeQuizSets(
+        @Parameter(description = "유저 ID", example = "1")
+        @PathVariable userId: Long,
+        @PageableDefault(size = 20)
+        pageable: Pageable
+    ): PageResponse<QuizSetResponse> =
+        quizSetLikeService.getLikeQuizSets(userId, pageable)
+
 }
