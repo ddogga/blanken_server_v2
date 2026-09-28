@@ -21,23 +21,27 @@ class StudyHistoryDetailService(
 
 
     @Transactional
-    fun create(request: List<StudyHistoryDetailRequest>, history: StudyHistory): Int {
+    fun create(request: List<StudyHistoryDetailRequest>, history: StudyHistory, quizSetId: Long): Int {
+
+        val quizIds = request.map { it.quizId }
+        require(quizIds.size == quizIds.toSet().size) { "학습 세부사항 목록에 중복된 정보가 들어 있습니다." }
+        val quizzes = quizRepository.findAllByIdInAndQuizSetId(quizIds, quizSetId)
+        require(quizzes.size == quizIds.size) { "잘못된 학습 세부사항 정보가 들어 있습니다." }
+
+        val quizMap: Map<Long, Quiz> = quizzes.associateBy { requireNotNull(it.id) }
 
         val historyDetails = request.map{
             req ->
             val detail = StudyHistoryDetail(
-                quiz = findQuizById(req.quizId),
+                quiz = quizMap.getValue(req.quizId),
                 gaveUp = req.gaveUp,
             )
             history.addDetail(detail)
             detail
         }
-        return studyHistoryDetailRepository.saveAll(historyDetails).size
+        return historyDetails.size
     }
 
-    private fun findQuizById(quizId: Long): Quiz {
-        return quizRepository.findByIdOrNull(quizId)
-            ?: throw QuizNotFoundException(quizId)
-    }
+
 
 }

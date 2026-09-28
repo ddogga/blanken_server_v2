@@ -9,10 +9,16 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 
 
 @Entity
-@Table(name = "study_history_detail")
+@Table(name =
+    "study_history_detail",
+    uniqueConstraints = [
+        UniqueConstraint(name = "uk_study_history_detail_quiz_history", columnNames = ["quiz_id", "history_id"])
+    ]
+)
 class StudyHistoryDetail(
 
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)

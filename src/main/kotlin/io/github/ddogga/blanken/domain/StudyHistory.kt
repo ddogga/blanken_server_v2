@@ -11,6 +11,7 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
+import java.math.BigDecimal
 import java.time.Instant
 
 
@@ -27,7 +28,7 @@ class StudyHistory(
 	var quizSet: QuizSet,
 
 	@Column(name = "score", nullable = false)
-	var score: Int,
+	var score: BigDecimal,
 
 	@Column(name = "total_count", nullable = false)
 	var totalCount: Int,
@@ -37,6 +38,10 @@ class StudyHistory(
 
 	@Column(name = "solved_at", nullable = false)
 	var solvedAt: Instant = Instant.now(),
+
+    // Redis 세션 추가시 추가
+//    @Column(name = "session_id", nullable = false, unique = true)
+//    var sessionId: String,
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
