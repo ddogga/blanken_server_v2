@@ -72,6 +72,31 @@ class QuizSetLikeServiceTest(
         assertEquals(QUIZ_SET_ID, exception.quizSetId)
     }
 
+    @Test
+    fun `퀴즈셋_좋아요_취소_로직이_정상적으로_수행된다`() {
+
+        // given
+        quizSetLikeService.addLikeQuizSet(QUIZ_SET_ID, OWNER_ID)
+
+        // when
+        val quizSet = quizSetLikeService.cancelLikeQuizSet(QUIZ_SET_ID, OWNER_ID)
+
+        // then
+        assertEquals(QUIZ_SET_ID, quizSet.id)
+        assertEquals(0, quizSet.likeCount)
+    }
+
+    @Test
+    fun `좋아요_0인_퀴즈셋_좋아요_취소시_결과가_멱등하게_돌작한다`() {
+
+        // when
+        val quizSet = quizSetLikeService.cancelLikeQuizSet(QUIZ_SET_ID, OWNER_ID)
+
+        // then
+        assertEquals(QUIZ_SET_ID, quizSet.id)
+        assertEquals(0, quizSet.likeCount)
+    }
+
 
     private fun user(): User =
         User(email = EMAIL, password = "hashed", nickname = NICKNAME)
