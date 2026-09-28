@@ -26,7 +26,7 @@ class StudyHistoryDetailService(
         val quizIds = request.map { it.quizId }
         require(quizIds.size == quizIds.toSet().size) { "학습 세부사항 목록에 중복된 정보가 들어 있습니다." }
         val quizzes = quizRepository.findAllByIdInAndQuizSetId(quizIds, quizSetId)
-        require(quizzes.size == quizIds.size) { "잘못된 학습 세부사항 정보가 들어 있습니다." }
+        require(quizzes.size == quizIds.size) { "다른 퀴즈셋의 학습 정보가 들어 있습니다." }
 
         val quizMap: Map<Long, Quiz> = quizzes.associateBy { requireNotNull(it.id) }
 
