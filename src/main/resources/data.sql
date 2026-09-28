@@ -29,14 +29,19 @@ ON CONFLICT (name) DO NOTHING;
 
 
 -- ──────────────────────────────────────────────────────────────────────────
--- 유저 3명
+-- 유저 4명
 -- 비밀번호는 모두 `password123!` 의 BCrypt 해시다 (cost 10).
 -- 인증 도입 전이라 당장 쓰이지 않지만, 나중에 그대로 로그인되도록 실제 해시를 넣어 둔다.
+--
+-- 앞의 3명은 아래 퀴즈셋 블록이 이메일로 직접 참조하므로 이름·순서를 바꾸지 않는다.
+-- `test@test.io` 는 퀴즈셋을 하나도 갖지 않는 **소비자 유저**다.
+-- 파일 맨 아래 좋아요 블록이 이 유저 앞으로 30건을 달아 둔다.
 -- ──────────────────────────────────────────────────────────────────────────
 INSERT INTO users (email, password, nickname, created_at, updated_at) VALUES
     ('blanken@blanken.io', '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK', 'blanken',  now() - interval '90 days', now() - interval '90 days'),
     ('hyeon@blanken.io',   '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK', '현이',     now() - interval '60 days', now() - interval '60 days'),
-    ('mina@blanken.io',    '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK', '미나',     now() - interval '30 days', now() - interval '30 days')
+    ('mina@blanken.io',    '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK', '미나',     now() - interval '30 days', now() - interval '30 days'),
+    ('test@test.io',       '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK', '테스터',   now() - interval '10 days', now() - interval '10 days')
 ON CONFLICT (email) DO NOTHING;
 
 
@@ -161,3 +166,38 @@ FROM numbered s
 CROSS JOIN LATERAL generate_series(1, s.quiz_count) AS g(n)
 JOIN pool p ON p.n = ((s.idx + g.n - 1) % 16) + 1
 WHERE NOT EXISTS (SELECT 1 FROM quiz);
+
+
+-- ──────────────────────────────────────────────────────────────────────────
+-- 좋아요 30개 — 전부 `test@test.io` 가 누른 것
+--
+-- "내가 좋아요한 퀴즈셋 목록" 을 확인하기 위한 데이터다.
+-- 20개씩 끊으면 2페이지(20 + 10)가 나오도록 30개를 넣는다.
+--
+-- 대상은 **공개 퀴즈셋만** id 순으로 앞에서 30개. random() 을 쓰지 않으므로 재현 가능하다.
+-- `created_at` 을 1시간씩 어긋나게 둔다 — 최근에 누른 순 정렬 확인용.
+--
+-- UNIQUE(user_id, quiz_set_id) 를 이용한 ON CONFLICT DO NOTHING 이라
+-- 위 블록들과 달리 "테이블이 비어 있을 때만" 조건 없이도 여러 번 실행할 수 있다.
+--
+-- 주의: `quiz_set.like_count` 는 **일부러 건드리지 않았다.**
+--       위 퀴즈셋 블록이 동점 타이브레이커를 시험하려고 like_count 를 의도적으로
+--       겹쳐 놨는데(0/10/20/30/40), 여기서 30개를 +1 하면 그 동점이 깨진다.
+--       그래서 좋아요 행 수와 like_count 는 서로 맞지 않는다.
+-- ──────────────────────────────────────────────────────────────────────────
+INSERT INTO quiz_set_like (user_id, quiz_set_id, created_at, updated_at)
+SELECT u.id,
+       t.id,
+       now() - (t.rn || ' hours')::interval,
+       now() - (t.rn || ' hours')::interval
+FROM users u
+CROSS JOIN (
+    SELECT qs.id,
+           row_number() OVER (ORDER BY qs.id) AS rn
+    FROM quiz_set qs
+    WHERE qs.visibility = 'PUBLIC'
+    ORDER BY qs.id
+    LIMIT 30
+) AS t
+WHERE u.email = 'test@test.io'
+ON CONFLICT (user_id, quiz_set_id) DO NOTHING;

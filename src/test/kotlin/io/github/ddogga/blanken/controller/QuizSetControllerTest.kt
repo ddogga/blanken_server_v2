@@ -199,7 +199,28 @@ class QuizSetControllerTest(
             param("page", "0")
             param("size", "10")
         }.andExpect {
-            status { isBadRequest() }
+            status { isOk() }
+            jsonPath("$.totalPages") { value(1) }
+            jsonPath("$.totalElements") { value(1) }
+        }
+
+    }
+
+    @Test
+    fun `200_좋아요_퀴즈셋_목록_조회_성공`() {
+
+        // given
+        val pageable = PageRequest.of(0, 1)
+        every { quizSetLikeService.getLikeQuizSets( USER_ID, pageable) } returns pageableQuizSetResponse()
+
+        // when & then
+        mockMvc.get("/api/quiz-sets/likes/${USER_ID}") {
+            param("page", "0")
+            param("size", "1")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.totalPages") { value(1) }
+            jsonPath("$.totalElements") { value(1) }
         }
 
     }
@@ -244,5 +265,6 @@ class QuizSetControllerTest(
 		private val CREATED_AT: Instant = Instant.parse("2026-09-02T00:00:00Z")
         private const val KEYWORD = "토익"
         private const val SEARCH_CATEGORY = 1L
+        private const val USER_ID = 99L
 	}
 }
