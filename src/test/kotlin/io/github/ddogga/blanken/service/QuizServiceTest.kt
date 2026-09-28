@@ -88,11 +88,11 @@ class QuizServiceTest {
 
 
     private fun updateRequest()
-    = QuizRequest(
-        sentence = UPDATED_SENTENCE,
-        answerWord = UPDATED_ANSWER_WORD,
-        hint = QUIZ_HINT
-    )
+        = QuizRequest(
+            sentence = UPDATED_SENTENCE,
+            answerWord = UPDATED_ANSWER_WORD,
+            hint = QUIZ_HINT
+        )
 
 
     private fun category(id: Long, name: String): Category = Category(name = name, id = id)

@@ -72,11 +72,6 @@ class QuizSetLikeServiceTest(
         assertEquals(QUIZ_SET_ID, exception.quizSetId)
     }
 
-    @Test
-    fun `퀴즈셋_좋아요_동시_카운트시_원자적으로_카운트_된다`() {
-        // TODO
-    }
-
 
     private fun user(): User =
         User(email = EMAIL, password = "hashed", nickname = NICKNAME)
