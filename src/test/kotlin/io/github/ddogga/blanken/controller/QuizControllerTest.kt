@@ -122,31 +122,35 @@ class QuizControllerTest(
     @Test
     fun `200_소속_퀴즈셋_변경_성공`() {
         // given — 경로의 quizSetId 는 "옮겨 갈" 퀴즈셋이고, 응답의 quizSetId 도 그 값이어야 한다.
-        every { quizService.changeQuizSet(QUIZ_ID, NEW_QUIZ_SET_ID) } returns quizResponse(quizSetId = NEW_QUIZ_SET_ID)
+        every { quizService.changeQuizSet(listOf(QUIZ_ID),
+            NEW_QUIZ_SET_ID) } returns listOf(quizResponse(quizSetId = NEW_QUIZ_SET_ID))
 
         // when & then — 본문 없는 PATCH.
-        mockMvc.patch("/api/quiz-sets/$NEW_QUIZ_SET_ID/quizzes/$QUIZ_ID")
-            .andExpect {
-                status { isOk() }
-                jsonPath("$.id") { value(QUIZ_ID) }
-                jsonPath("$.quizSetId") { value(NEW_QUIZ_SET_ID) }
-                jsonPath("$.sentence") { value(QUIZ_SENTENCE) }
-            }
+        mockMvc.patch("/api/quiz-sets/$NEW_QUIZ_SET_ID/quizzes") {
+            param("quizIds", "$QUIZ_ID")
+        }.andExpect {
+            status { isOk() }
+            jsonPath("$.length()") { value(1)}
+            jsonPath("$.[0].id") { value(QUIZ_ID) }
+            jsonPath("$.[0].quizSetId") { value(NEW_QUIZ_SET_ID) }
+            jsonPath("$.[0].sentence") { value(QUIZ_SENTENCE) }
+        }
     }
 
     @Test
     fun `404_존재하지_않는_소속_퀴즈셋_변경_실패`() {
         // given — 옮겨 갈 대상 퀴즈셋이 없는 경우
-        every { quizService.changeQuizSet(QUIZ_ID, NEW_QUIZ_SET_ID) } throws
+        every { quizService.changeQuizSet(listOf(QUIZ_ID), NEW_QUIZ_SET_ID) } throws
                 QuizSetNotFoundException(NEW_QUIZ_SET_ID)
 
         // when & then
-        mockMvc.patch("/api/quiz-sets/$NEW_QUIZ_SET_ID/quizzes/$QUIZ_ID")
-            .andExpect {
-                status { isNotFound() }
-                jsonPath("$.code") { value("Q001") }
-                jsonPath("$.message") { value("퀴즈 셋을 찾을 수 없습니다.") }
-            }
+        mockMvc.patch("/api/quiz-sets/$NEW_QUIZ_SET_ID/quizzes"){
+            param("quizIds", "$QUIZ_ID")
+        }.andExpect {
+            status { isNotFound() }
+            jsonPath("$.code") { value("Q001") }
+            jsonPath("$.message") { value("퀴즈 셋을 찾을 수 없습니다.") }
+        }
     }
 
     private fun quizResponse(

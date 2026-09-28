@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import java.net.URI
 
@@ -47,13 +48,13 @@ class QuizController (
     ): QuizResponse = quizService.update(quizId, quizSetId, request)
 
 
-    @Operation(summary = "퀴즈를 다른 퀴즈셋으로 옮기기", description = "퀴즈가 소속된 퀴즈셋을 변경합니다.")
-    @PatchMapping("/{quizId}")
+    @Operation(summary = "퀴즈 여러개를 다른 퀴즈셋으로 옮기기", description = "퀴즈 여러개의 소속 퀴즈셋을 변경합니다.")
+    @PatchMapping
     fun changeQuizSet(
         @Parameter(description = "옮길 quizSetId", example = "1")
         @PathVariable quizSetId: Long,
-        @Parameter(description = "퀴즈 ID", example = "1")
-        @PathVariable quizId: Long): QuizResponse = quizService.changeQuizSet(quizId, quizSetId)
+        @RequestParam(required = true) quizIds: List<Long>
+    ): List<QuizResponse> = quizService.changeQuizSet(quizIds, quizSetId)
 
 
 

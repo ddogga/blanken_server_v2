@@ -79,10 +79,10 @@ class QuizServiceTest {
         every { quizRepository.findById(QUIZ_ID) } returns Optional.of(quiz(quizSet))
 
         // when
-        val response = quizService.changeQuizSet(QUIZ_ID, NEW_QUIZ_SET_ID)
+        val response = quizService.changeQuizSet(listOf(QUIZ_ID), NEW_QUIZ_SET_ID)
 
         // then
-        assertEquals(NEW_QUIZ_SET_ID, response.quizSetId)
+        assertEquals(NEW_QUIZ_SET_ID, response.get(0).quizSetId)
     }
 
 

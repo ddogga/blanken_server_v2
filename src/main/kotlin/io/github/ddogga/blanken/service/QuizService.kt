@@ -48,14 +48,16 @@ class QuizService (
 
 
     @Transactional
-    fun changeQuizSet(quizId: Long, newQuizSetId: Long): QuizResponse {
-
-        val quiz = findQuizById(quizId)
+    fun changeQuizSet(quizIds: List<Long>, newQuizSetId: Long): List<QuizResponse> {
 
         val newQuizSet = findQuizSetById(newQuizSetId)
 
-        quiz.updateQuizSet(newQuizSet)
-        return QuizResponse.from(quiz, newQuizSetId)
+        return quizIds.map { quizId ->
+            val quiz = findQuizById(quizId)
+            quiz.updateQuizSet(newQuizSet)
+            QuizResponse.from(quiz, newQuizSetId)
+        }
+
     }
 
 

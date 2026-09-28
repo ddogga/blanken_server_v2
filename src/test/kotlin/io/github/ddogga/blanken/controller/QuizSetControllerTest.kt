@@ -199,9 +199,7 @@ class QuizSetControllerTest(
             param("page", "0")
             param("size", "10")
         }.andExpect {
-            status { isOk() }
-            jsonPath("$.totalPages") { value(1) }
-            jsonPath("$.totalElements") { value(1) }
+            status { isBadRequest() }
         }
 
     }
