@@ -4,6 +4,7 @@ import com.ninjasquad.springmockk.MockkBean
 import io.github.ddogga.blanken.domain.Quiz
 import io.github.ddogga.blanken.dto.quiz.QuizResponse
 import io.github.ddogga.blanken.exception.QuizNotFoundException
+import io.github.ddogga.blanken.exception.QuizSetAccessDeniedException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.service.QuizService
 import io.mockk.every
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.patch
 import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.put
@@ -152,6 +154,37 @@ class QuizControllerTest(
             jsonPath("$.message") { value("퀴즈 셋을 찾을 수 없습니다.") }
         }
     }
+
+    @Test
+    fun `200_퀴즈셋ID로_퀴즈_리스트_조회_성공`() {
+        // given
+        every { quizService.getQuizList(QUIZ_SET_ID) } returns listOf(quizResponse(quizSetId = QUIZ_SET_ID))
+
+        // when & then
+        mockMvc.get("/api/quiz-sets/$QUIZ_SET_ID/quizzes")
+            .andExpect {
+                status { isOk() }
+                jsonPath("$.[0].quizSetId") { value(QUIZ_SET_ID) }
+                jsonPath("$.[0].id") { value(QUIZ_ID) }
+            }
+    }
+
+    @Test
+    fun `403_PRIVATE_퀴즈셋_아래의_퀴즈_리스트_조회시_조회_실패`() {
+        // given
+        every { quizService.getQuizList(QUIZ_SET_ID) } throws
+                QuizSetAccessDeniedException(QUIZ_SET_ID)
+
+        // when & then
+        mockMvc.get("/api/quiz-sets/$QUIZ_SET_ID/quizzes")
+            .andExpect {
+                status { isForbidden() }
+                jsonPath("$.code") { value("Q005") }
+                jsonPath("$.message") { value("접근 권한이 없는 퀴즈셋입니다.") }
+            }
+    }
+
+
 
     private fun quizResponse(
         quizSetId: Long = QUIZ_SET_ID,
