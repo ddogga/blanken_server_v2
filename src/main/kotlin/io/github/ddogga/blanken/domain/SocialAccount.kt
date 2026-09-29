@@ -27,7 +27,7 @@ class SocialAccount(
 
     @Enumerated(EnumType.STRING)
     @Column(name = "provider", nullable = false)
-    var provider: Provider,
+    var oauthProvider: OauthProvider,
 
     @Column(name = "provider_id", nullable = false)
     var providerId : String,

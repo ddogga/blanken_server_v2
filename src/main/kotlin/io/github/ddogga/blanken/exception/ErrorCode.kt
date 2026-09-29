@@ -27,6 +27,7 @@ enum class ErrorCode(
 	// User
 	USER_NOT_FOUND(HttpStatus.NOT_FOUND, "U001", "유저를 찾을 수 없습니다."),
 	DUPLICATE_EMAIL(HttpStatus.CONFLICT, "U002", "이미 사용 중인 이메일입니다."),
+    INVALID_OAUTH2_USER_INFO(HttpStatus.BAD_REQUEST, "U003", "유효하지 않은 OAuth2 유저 정보입니다."),
 
     // Quiz Set
     QUIZ_SET_NOT_FOUND(HttpStatus.NOT_FOUND, "Q001", "퀴즈 셋을 찾을 수 없습니다."),
