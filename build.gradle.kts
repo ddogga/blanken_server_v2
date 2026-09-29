@@ -24,12 +24,25 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
-	// 비밀번호 해싱(BCrypt)만 쓰기 위한 단독 라이브러리.
-	// spring-boot-starter-security 가 아니므로 필터체인·자동 로그인 설정이 붙지 않는다.
-	implementation("org.springframework.security:spring-security-crypto")
+
+    // 인증, 인가
+    implementation ("org.springframework.boot:spring-boot-starter-security")
+    implementation ("org.springframework.boot:spring-boot-starter-oauth2-client")
+
+    // JWT 발급·검증 (jjwt)
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
+
+    // Refresh Token 저장용
+    implementation ("org.springframework.boot:spring-boot-starter-data-redis")
+    testImplementation ("org.springframework.security:spring-security-test")
+
+    implementation("org.springframework.security:spring-security-crypto")
 	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
 	implementation("org.jetbrains.kotlin:kotlin-reflect")
 	implementation("tools.jackson.module:jackson-module-kotlin")
+
     // QueryDSL. 버전은 부트 4.1 BOM 이 관리한다(5.1.0). jakarta 분류자 필수.
     implementation("com.querydsl:querydsl-jpa::jakarta")
     kapt("com.querydsl:querydsl-apt::jakarta")
@@ -39,6 +52,7 @@ dependencies {
 	compileOnly("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
+
 	// 부트 4 는 테스트 슬라이스를 모듈별 아티팩트로 쪼갰다. @DataJpaTest 는 여기에만 있다.
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	// Testcontainers. 버전은 부트 BOM 이 관리한다(2.0.5).
