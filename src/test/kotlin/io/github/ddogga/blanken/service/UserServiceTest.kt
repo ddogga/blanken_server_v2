@@ -1,6 +1,8 @@
 package io.github.ddogga.blanken.service
 
 import io.github.ddogga.blanken.domain.User
+import io.github.ddogga.blanken.domain.UserRole
+import io.github.ddogga.blanken.domain.UserStatus
 import io.github.ddogga.blanken.dto.user.PasswordChangeRequest
 import io.github.ddogga.blanken.dto.user.UserCreateRequest
 import io.github.ddogga.blanken.dto.user.UserUpdateRequest
@@ -196,7 +198,14 @@ class UserServiceTest {
 		email: String = EMAIL,
 		password: String = ENCODED_PASSWORD,
 		nickname: String = NICKNAME,
-	): User = User(email = email, password = password, nickname = nickname, id = id).apply {
+	): User = User(
+        email = email,
+        password = password,
+        nickname = nickname,
+        userStatus = UserStatus.ACTIVE,
+        userRole = UserRole.USER,
+        id = id
+    ).apply {
 		createdAt = CREATED_AT
 		updatedAt = CREATED_AT
 	}
