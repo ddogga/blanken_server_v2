@@ -28,17 +28,17 @@ import jakarta.persistence.UniqueConstraint
 )
 class QuizSetLike(
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "user_id", nullable = false)
 	var user: User,
 
-	@ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "quiz_set_id", nullable = false)
 	var quizSet: QuizSet,
 
-	@Id
+    @Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id")
 	val id: Long? = null,
 
-) : BaseTimeEntity()
+    ) : BaseTimeEntity()

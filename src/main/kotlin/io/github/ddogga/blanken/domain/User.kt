@@ -8,20 +8,45 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 
+/**
+ *
+ * 이메일은 유니크 제약 조건 x
+ * 같은 이메일로 소셜 , 일반 회원 가입 가능
+ *
+ */
 
 @Entity
-@Table(name = "users")
+@Table(name = "users",
+    uniqueConstraints = [
+        UniqueConstraint(
+            name = "users_provider_provider_id",
+            columnNames = ["provider", "provider_id"]
+        )
+        ]
+    )
 class User(
 
-	@Column(name = "email", nullable = false, unique = true, length = 255)
+    @Column(name = "email", nullable = false, length = 255)
 	var email: String,
 
-	@Column(name = "password", nullable = false, length = 255)
-	var password: String,
+    //필요시 추가
+//    @Column(name = "phon_number", unique = true)
+//    var phonNumber: String,
 
-	@Column(name = "nickname", nullable = false, length = 50)
-	var nickname: String,
+    @Column(name = "password")
+    var password: String,
+
+    @Column(name = "nickname")
+    var nickname : String,
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "provider")
+    var oauthProvider: OauthProvider,
+
+    @Column(name = "provider_id")
+    var providerId : String,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "user_status", nullable = false)
@@ -31,9 +56,9 @@ class User(
     @Column(name = "user_role", nullable = false)
     var userRole: UserRole,
 
-	@Id
+    @Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id")
 	val id: Long? = null,
 
-) : BaseTimeEntity()
+    ) : BaseTimeEntity()

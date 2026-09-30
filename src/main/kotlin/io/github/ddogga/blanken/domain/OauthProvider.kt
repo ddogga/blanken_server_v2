@@ -5,6 +5,12 @@ import io.github.ddogga.blanken.exception.ErrorCode
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
 import org.springframework.security.oauth2.core.OAuth2Error
 
+
+/**
+ * Provider(kakao, naver등)별로 응답값이 상이 하므로
+ * 공통형태로 변환하는 로직 추가
+ */
+
 enum class OauthProvider(val providerName: String) {
 
 

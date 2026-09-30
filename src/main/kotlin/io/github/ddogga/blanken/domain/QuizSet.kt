@@ -31,19 +31,19 @@ class QuizSet(
     @Column(name = "title", nullable = false, length = 100)
 	var title: String,
 
-	@Column(name = "description", length = 500)
+    @Column(name = "description", length = 500)
 	var description: String? = null,
 
-	@Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING)
 	@Column(name = "visibility", nullable = false, length = 20)
 	var visibility: Visibility = Visibility.PUBLIC,
 
-	@Id
+    @Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id")
 	val id: Long? = null,
 
-) : BaseTimeEntity() {
+    ) : BaseTimeEntity() {
 
 	@Column(name = "like_count", nullable = false)
 	var likeCount: Int = 0

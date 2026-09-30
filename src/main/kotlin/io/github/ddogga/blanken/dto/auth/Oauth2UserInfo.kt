@@ -13,11 +13,12 @@ data class Oauth2UserInfo (
 
     ) {
 
-    fun of(providerName: String, attributes: Map<String, Object>): Oauth2UserInfo {
+    companion object {
+        fun of(providerName: String, attributes: Map<String, Any>): Oauth2UserInfo {
 
-        val provider = OauthProvider.from(providerName)
-        return provider.extract(attributes)
+            val provider = OauthProvider.from(providerName)
+            return provider.extract(attributes)
+        }
     }
-
 
 }
