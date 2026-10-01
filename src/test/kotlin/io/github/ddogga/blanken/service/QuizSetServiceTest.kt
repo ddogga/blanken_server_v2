@@ -3,6 +3,8 @@ package io.github.ddogga.blanken.service
 import io.github.ddogga.blanken.domain.Category
 import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.domain.User
+import io.github.ddogga.blanken.domain.UserRole
+import io.github.ddogga.blanken.domain.UserStatus
 import io.github.ddogga.blanken.domain.Visibility
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
@@ -185,7 +187,14 @@ class QuizSetServiceTest {
 	)
 
 	private fun user(): User =
-		User(email = EMAIL, password = "hashed", nickname = NICKNAME, id = OWNER_ID).apply {
+		User(email = EMAIL,
+            password = "hashed",
+            nickname = NICKNAME,
+            null,
+            null,
+            UserStatus.ACTIVE,
+            UserRole.USER,
+            id = OWNER_ID).apply {
 			createdAt = CREATED_AT
 			updatedAt = CREATED_AT
 		}

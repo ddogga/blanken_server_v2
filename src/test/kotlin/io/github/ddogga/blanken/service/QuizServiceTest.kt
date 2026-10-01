@@ -4,6 +4,8 @@ import io.github.ddogga.blanken.domain.Category
 import io.github.ddogga.blanken.domain.Quiz
 import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.domain.User
+import io.github.ddogga.blanken.domain.UserRole
+import io.github.ddogga.blanken.domain.UserStatus
 import io.github.ddogga.blanken.domain.Visibility
 import io.github.ddogga.blanken.dto.quiz.QuizRequest
 import io.github.ddogga.blanken.dto.quiz.QuizResponse
@@ -103,7 +105,9 @@ class QuizServiceTest {
 
     private fun quizSet(category: Category, id: Long): QuizSet =
         QuizSet(
-            owner = User("x@x.io", "pass", "nick", 1L).apply {
+            owner = User("x@x.io", "pass", "nick", null, null,
+
+                UserStatus.ACTIVE, UserRole.USER, 1L).apply {
                 createdAt = CREATED_AT
                 updatedAt = CREATED_AT
             },

@@ -202,6 +202,8 @@ class UserServiceTest {
         email = email,
         password = password,
         nickname = nickname,
+        null,
+        null,
         userStatus = UserStatus.ACTIVE,
         userRole = UserRole.USER,
         id = id

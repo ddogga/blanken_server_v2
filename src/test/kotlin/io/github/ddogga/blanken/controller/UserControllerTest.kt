@@ -1,6 +1,8 @@
 package io.github.ddogga.blanken.controller
 
 import com.ninjasquad.springmockk.MockkBean
+import io.github.ddogga.blanken.domain.UserRole
+import io.github.ddogga.blanken.domain.UserStatus
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.user.UserResponse
 import io.github.ddogga.blanken.exception.DuplicateEmailException
@@ -216,7 +218,13 @@ class UserControllerTest(
 		id: Long = USER_ID,
 		email: String = EMAIL,
 		nickname: String = NICKNAME,
-	): UserResponse = UserResponse(id = id, email = email, nickname = nickname, createdAt = CREATED_AT)
+	): UserResponse = UserResponse(
+        id = id,
+        email = email,
+        nickname = nickname,
+        userRole = UserRole.USER,
+        userStatus = UserStatus.ACTIVE,
+        createdAt = CREATED_AT)
 
 	companion object {
 		private const val USER_ID = 1L

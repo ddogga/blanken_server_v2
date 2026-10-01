@@ -4,6 +4,8 @@ import io.github.ddogga.blanken.domain.Category
 import io.github.ddogga.blanken.domain.Quiz
 import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.domain.User
+import io.github.ddogga.blanken.domain.UserRole
+import io.github.ddogga.blanken.domain.UserStatus
 import io.github.ddogga.blanken.domain.Visibility
 import io.github.ddogga.blanken.dto.history.StudyHistoryDetailRequest
 import io.github.ddogga.blanken.dto.history.StudyHistoryRequest
@@ -131,7 +133,14 @@ class StudyHistoryServiceTest(
         )
 
     private fun user(): User =
-        User(email = EMAIL, password = "hashed", nickname = NICKNAME)
+        User(email = EMAIL,
+            password = "hashed",
+            nickname = NICKNAME,
+            null,
+            null,
+            UserStatus.ACTIVE,
+            UserRole.USER
+        )
 
     private fun category(name: String): Category = Category(name = name)
 

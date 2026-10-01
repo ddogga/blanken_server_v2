@@ -36,17 +36,17 @@ class User(
 //    var phonNumber: String,
 
     @Column(name = "password")
-    var password: String,
+    var password: String?,
 
     @Column(name = "nickname")
     var nickname : String,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "provider")
-    var oauthProvider: OauthProvider,
+    var oauthProvider: OauthProvider?,
 
     @Column(name = "provider_id")
-    var providerId : String,
+    var providerId : String?,
 
     @Enumerated(EnumType.STRING)
     @Column(name = "user_status", nullable = false)

@@ -1,7 +1,8 @@
 -- 개발용 초기 데이터.
 --
 -- 여러 번 실행해도 안전하다. 카테고리는 name UNIQUE 를 이용한 ON CONFLICT DO NOTHING,
--- 유저는 email UNIQUE 를 이용한 ON CONFLICT DO NOTHING,
+-- 유저는 `users.email` 에 UNIQUE 가 없어졌으므로(같은 이메일로 소셜·일반 가입 허용)
+--   `WHERE NOT EXISTS` 로 **(email, provider IS NULL) 조합이 없을 때만** 넣는다.
 -- 퀴즈셋·퀴즈는 유니크 제약이 없어 `WHERE NOT EXISTS` 로 **테이블이 비어 있을 때만** 넣는다.
 -- (따라서 퀴즈셋이 한 건이라도 있으면 아래 퀴즈셋/퀴즈 블록은 통째로 건너뛴다.)
 --
@@ -29,20 +30,37 @@ ON CONFLICT (name) DO NOTHING;
 
 
 -- ──────────────────────────────────────────────────────────────────────────
--- 유저 4명
+-- 유저 4명 — 전부 **일반(로컬) 계정**이다 (`provider` / `provider_id` 가 NULL).
 -- 비밀번호는 모두 `password123!` 의 BCrypt 해시다 (cost 10).
--- 인증 도입 전이라 당장 쓰이지 않지만, 나중에 그대로 로그인되도록 실제 해시를 넣어 둔다.
 --
 -- 앞의 3명은 아래 퀴즈셋 블록이 이메일로 직접 참조하므로 이름·순서를 바꾸지 않는다.
 -- `test@test.io` 는 퀴즈셋을 하나도 갖지 않는 **소비자 유저**다.
 -- 파일 맨 아래 좋아요 블록이 이 유저 앞으로 30건을 달아 둔다.
+--
+-- `users.email` 의 UNIQUE 가 없어져서 `ON CONFLICT (email)` 을 더는 쓸 수 없다.
+-- 남은 UNIQUE 는 `(provider, provider_id)` 뿐인데 로컬 계정은 둘 다 NULL 이고
+-- PostgreSQL 에서 NULL 끼리는 서로 다른 값으로 취급돼 충돌이 잡히지 않는다.
+-- 그래서 행마다 `WHERE NOT EXISTS` 로 직접 거른다.
 -- ──────────────────────────────────────────────────────────────────────────
-INSERT INTO users (email, password, nickname, created_at, updated_at) VALUES
-    ('blanken@blanken.io', '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK', 'blanken',  now() - interval '90 days', now() - interval '90 days'),
-    ('hyeon@blanken.io',   '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK', '현이',     now() - interval '60 days', now() - interval '60 days'),
-    ('mina@blanken.io',    '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK', '미나',     now() - interval '30 days', now() - interval '30 days'),
-    ('test@test.io',       '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK', '테스터',   now() - interval '10 days', now() - interval '10 days')
-ON CONFLICT (email) DO NOTHING;
+INSERT INTO users (email, password, nickname, provider, provider_id, user_status, user_role, created_at, updated_at)
+SELECT d.email,
+       '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK',
+       d.nickname,
+       NULL,
+       NULL,
+       'ACTIVE',
+       'USER',
+       now() - (d.days_ago || ' days')::interval,
+       now() - (d.days_ago || ' days')::interval
+FROM (VALUES
+    ('blanken@blanken.io', 'blanken', 90),
+    ('hyeon@blanken.io',   '현이',    60),
+    ('mina@blanken.io',    '미나',    30),
+    ('test@test.io',       '테스터',  10)
+) AS d(email, nickname, days_ago)
+WHERE NOT EXISTS (
+    SELECT 1 FROM users u WHERE u.email = d.email AND u.provider IS NULL
+);
 
 
 -- ──────────────────────────────────────────────────────────────────────────
@@ -122,7 +140,9 @@ FROM (
     JOIN cats   c ON c.i = g.n % 10
     JOIN kinds  k ON k.i = g.n % 5
 ) AS d(email, category, title, description, visibility, like_count, quiz_count, days_ago)
-JOIN users u ON u.email = d.email
+-- 이메일이 더는 UNIQUE 가 아니므로 소유자를 **로컬 계정으로 한정**한다.
+-- 같은 이메일의 소셜 계정이 생기면 조인이 두 배로 불어난다.
+JOIN users u ON u.email = d.email AND u.provider IS NULL
 JOIN category c ON c.name = d.category
 WHERE NOT EXISTS (SELECT 1 FROM quiz_set);
 
@@ -199,5 +219,6 @@ CROSS JOIN (
     ORDER BY qs.id
     LIMIT 30
 ) AS t
-WHERE u.email = 'test@test.io'
+-- 퀴즈셋 블록과 같은 이유로 로컬 계정으로 한정한다.
+WHERE u.email = 'test@test.io' AND u.provider IS NULL
 ON CONFLICT (user_id, quiz_set_id) DO NOTHING;

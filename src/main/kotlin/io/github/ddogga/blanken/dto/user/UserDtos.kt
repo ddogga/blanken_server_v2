@@ -1,6 +1,9 @@
 package io.github.ddogga.blanken.dto.user
 
+import io.github.ddogga.blanken.domain.OauthProvider
 import io.github.ddogga.blanken.domain.User
+import io.github.ddogga.blanken.domain.UserRole
+import io.github.ddogga.blanken.domain.UserStatus
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
@@ -64,6 +67,12 @@ data class UserResponse(
 	@field:Schema(description = "닉네임", example = "blanken")
 	val nickname: String,
 
+    @field:Schema(description = "회원 권한", example = "USER")
+    val userRole: UserRole,
+
+    @field:Schema(description = "회원 상태", example = "ACTIVE")
+    val userStatus: UserStatus,
+
 	@field:Schema(description = "가입 시각")
 	val createdAt: Instant,
 ) {
@@ -72,7 +81,30 @@ data class UserResponse(
 			id = requireNotNull(user.id) { "저장되지 않은 User 는 응답으로 변환할 수 없습니다." },
 			email = user.email,
 			nickname = user.nickname,
+            userRole = user.userRole,
+            userStatus = user.userStatus,
 			createdAt = user.createdAt,
 		)
 	}
+}
+
+
+
+data class LoginUser(
+
+    val id: Long,
+    val oauthProvider: OauthProvider,
+    val providerId: String,
+    val userStatus: UserStatus,
+    val userRole: UserRole
+) {
+    companion object {
+        fun from(user: User): LoginUser = LoginUser(
+            id = requireNotNull(user.id),
+            oauthProvider = requireNotNull(user.oauthProvider) {"provider 정보가 누락 되었습니다."},
+            providerId = requireNotNull(user.providerId) {"providerId 정보가 누락 되었습니다."},
+            userStatus = user.userStatus,
+            userRole = user.userRole
+        )
+    }
 }
