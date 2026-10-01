@@ -80,12 +80,11 @@ class UserService(
 		userRepository.delete(user)
 	}
 
-
     fun findLoginUser(provider: OauthProvider, providerId: String): LoginUser? =
         userRepository.findByOauthProviderAndProviderId(provider, providerId)
             ?.let { LoginUser.from(it) }
 
-
+    @Transactional
     fun socialRegister(userInfo: Oauth2UserInfo): LoginUser {
 
         val user = User(
