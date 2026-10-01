@@ -1,6 +1,7 @@
 package io.github.ddogga.blanken.controller
 
 import com.ninjasquad.springmockk.MockkBean
+import io.github.ddogga.blanken.config.TestSecurityConfig
 import io.github.ddogga.blanken.domain.QuizSetOrderEnum
 import io.github.ddogga.blanken.domain.Visibility
 import io.github.ddogga.blanken.dto.category.CategoryResponse
@@ -16,6 +17,7 @@ import io.mockk.every
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.http.MediaType
@@ -30,6 +32,7 @@ import java.time.Instant
  *
  * 서비스는 목으로 끊고 HTTP 계약만 본다 — 상태 코드, `Location` 헤더, 도메인 예외 → `ErrorCode` 변환, 응답 JSON 구조.
  */
+@Import(TestSecurityConfig::class)
 @WebMvcTest(QuizSetController::class)
 class QuizSetControllerTest(
 	@Autowired private val mockMvc: MockMvc,

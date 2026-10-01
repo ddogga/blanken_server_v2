@@ -1,6 +1,7 @@
 package io.github.ddogga.blanken.controller
 
 import com.ninjasquad.springmockk.MockkBean
+import io.github.ddogga.blanken.config.TestSecurityConfig
 import io.github.ddogga.blanken.domain.Quiz
 import io.github.ddogga.blanken.dto.quiz.QuizResponse
 import io.github.ddogga.blanken.exception.QuizNotFoundException
@@ -12,6 +13,7 @@ import org.hamcrest.Matchers.hasItem
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
@@ -20,6 +22,7 @@ import org.springframework.test.web.servlet.post
 import org.springframework.test.web.servlet.put
 
 
+@Import(TestSecurityConfig::class)
 @WebMvcTest(QuizController::class)
 class QuizControllerTest(
     @Autowired private val mockMvc: MockMvc

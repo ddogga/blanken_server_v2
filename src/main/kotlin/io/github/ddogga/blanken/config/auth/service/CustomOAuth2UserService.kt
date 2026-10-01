@@ -5,7 +5,6 @@ import io.github.ddogga.blanken.dto.auth.CustomOauth2User
 import io.github.ddogga.blanken.dto.auth.Oauth2UserInfo
 import io.github.ddogga.blanken.dto.user.LoginUser
 import io.github.ddogga.blanken.service.UserService
-import jakarta.servlet.http.HttpSession
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException
@@ -26,7 +25,6 @@ import org.springframework.stereotype.Service
 @Service
 class CustomOAuth2UserService(
     private val userService: UserService,
-    private val httpSession: HttpSession
 ) : DefaultOAuth2UserService() {
 
 

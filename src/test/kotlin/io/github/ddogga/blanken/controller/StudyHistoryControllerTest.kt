@@ -1,18 +1,21 @@
 package io.github.ddogga.blanken.controller
 
 import com.ninjasquad.springmockk.MockkBean
+import io.github.ddogga.blanken.config.TestSecurityConfig
 import io.github.ddogga.blanken.dto.history.StudyHistoryResponse
 import io.github.ddogga.blanken.service.StudyHistoryService
 import io.mockk.every
 import org.springframework.http.MediaType
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.context.annotation.Import
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
 import java.math.BigDecimal
 import kotlin.test.Test
 
 
+@Import(TestSecurityConfig::class)
 @WebMvcTest(StudyHistoryController::class)
 class StudyHistoryControllerTest (
   @Autowired private val mockMvc: MockMvc

@@ -1,6 +1,7 @@
 package io.github.ddogga.blanken.controller
 
 import com.ninjasquad.springmockk.MockkBean
+import io.github.ddogga.blanken.config.TestSecurityConfig
 import io.github.ddogga.blanken.domain.UserRole
 import io.github.ddogga.blanken.domain.UserStatus
 import io.github.ddogga.blanken.dto.common.PageResponse
@@ -15,6 +16,7 @@ import io.mockk.Runs
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
+import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.delete
@@ -31,6 +33,7 @@ import java.time.Instant
  * `@RestControllerAdvice` 인 `GlobalExceptionHandler` 는 `@WebMvcTest` 에 함께 로드되므로
  * 에러 응답도 실제 변환 경로를 그대로 탄다.
  */
+@Import(TestSecurityConfig::class)
 @WebMvcTest(UserController::class)
 class UserControllerTest(
 	@Autowired private val mockMvc: MockMvc,

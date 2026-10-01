@@ -1,6 +1,7 @@
 package io.github.ddogga.blanken.service
 
 
+import io.github.ddogga.blanken.config.TestSecurityConfig
 import io.github.ddogga.blanken.domain.Category
 import io.github.ddogga.blanken.domain.QuizSet
 import io.github.ddogga.blanken.domain.User
