@@ -34,7 +34,7 @@ enum class OauthProvider(val providerName: String) {
                 providerId = attributes["id"]?.toString()   // Long으로 오지만 String으로 통일
                     ?: throw invalidOauth2UserInfo("kakao provider id가 존재하지 않습니다."),
                 email = account["email"]?.toString(),
-                nickName = profile["nickname"]?.toString(),
+                nickname = profile["nickname"]?.toString(),
                 picture = profile["profile_image_url"]?.toString()
             )
         }
@@ -55,7 +55,7 @@ enum class OauthProvider(val providerName: String) {
                 providerId = response["id"]?.toString()
                     ?: throw invalidOauth2UserInfo("naver provider의 id가 존재하지 않습니다."),
                 email = response["email"]?.toString(),
-                nickName = response["nickname"]?.toString(),
+                nickname = response["nickname"]?.toString(),
                 picture = response["profile_image"]?.toString()
             )
         }

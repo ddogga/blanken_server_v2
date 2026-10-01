@@ -8,7 +8,7 @@ data class Oauth2UserInfo (
     val oauthProvider: OauthProvider,
     val providerId:String,
     val email: String?,
-    val nickName: String?,
+    val nickname: String?,
     val picture: String?,
 
     ) {

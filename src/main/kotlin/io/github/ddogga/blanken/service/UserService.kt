@@ -1,7 +1,12 @@
 package io.github.ddogga.blanken.service
 
+import io.github.ddogga.blanken.domain.OauthProvider
 import io.github.ddogga.blanken.domain.User
+import io.github.ddogga.blanken.domain.UserRole
+import io.github.ddogga.blanken.domain.UserStatus
+import io.github.ddogga.blanken.dto.auth.Oauth2UserInfo
 import io.github.ddogga.blanken.dto.common.PageResponse
+import io.github.ddogga.blanken.dto.user.LoginUser
 import io.github.ddogga.blanken.dto.user.PasswordChangeRequest
 import io.github.ddogga.blanken.dto.user.UserCreateRequest
 import io.github.ddogga.blanken.dto.user.UserResponse
@@ -33,6 +38,10 @@ class UserService(
 			email = request.email,
 			password = encode(request.password),
 			nickname = request.nickname,
+            null,
+            null,
+            userStatus = UserStatus.ACTIVE,
+            userRole = UserRole.USER,
 		)
 
 		return try {
@@ -71,6 +80,29 @@ class UserService(
 		userRepository.delete(user)
 	}
 
+
+    fun findLoginUser(provider: OauthProvider, providerId: String): LoginUser? =
+        userRepository.findByOauthProviderAndProviderId(provider, providerId)
+            ?.let { LoginUser.from(it) }
+
+
+    fun socialRegister(userInfo: Oauth2UserInfo): LoginUser {
+
+        val user = User(
+            email = NEW_USER_EMAIL,
+            password = null,
+            nickname = NEW_USER_NAME,
+            oauthProvider = userInfo.oauthProvider,
+            providerId = userInfo.providerId,
+            userStatus = UserStatus.PENDING,
+            userRole = UserRole.GUEST,
+        )
+
+        return LoginUser.from(userRepository.save(user))
+
+    }
+
+
 	private fun findUserOrThrow(id: Long): User =
 		userRepository.findById(id).orElseThrow { UserNotFoundException(id) }
 
@@ -80,4 +112,10 @@ class UserService(
 	 */
 	private fun encode(rawPassword: String): String =
 		requireNotNull(passwordEncoder.encode(rawPassword)) { "비밀번호 해싱에 실패했습니다." }
+
+
+    companion object {
+        private const val NEW_USER_NAME = "새로운 유저"
+        private const val NEW_USER_EMAIL = "newbie@blanken.com"
+    }
 }
