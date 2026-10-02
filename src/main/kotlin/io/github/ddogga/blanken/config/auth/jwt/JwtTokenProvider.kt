@@ -1,4 +1,4 @@
-package io.github.ddogga.blanken.config.auth.token
+package io.github.ddogga.blanken.config.auth.jwt
 
 import io.github.ddogga.blanken.domain.UserRole
 import io.github.ddogga.blanken.dto.auth.AccessTokenPayload

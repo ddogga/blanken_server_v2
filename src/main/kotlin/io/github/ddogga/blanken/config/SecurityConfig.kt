@@ -2,10 +2,17 @@ package io.github.ddogga.blanken.config
 
 import io.github.ddogga.blanken.config.auth.handler.Oauth2LoginFailureHandler
 import io.github.ddogga.blanken.config.auth.handler.Oauth2LoginSuccessHandler
+import io.github.ddogga.blanken.config.auth.jwt.JwtAccessDeniedHandler
+import io.github.ddogga.blanken.config.auth.jwt.JwtAuthenticationEntryPoint
+import io.github.ddogga.blanken.config.auth.jwt.JwtAuthenticationFilter
+import io.github.ddogga.blanken.config.auth.jwt.JwtTokenProvider
 import io.github.ddogga.blanken.config.auth.repository.HttpCookieOAuth2AuthorizationRequestRepository
 import io.github.ddogga.blanken.config.auth.service.CustomOAuth2UserService
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
+import org.springframework.http.HttpStatus
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy
 import org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole
 import org.springframework.security.authorization.SingleResultAuthorizationManager.permitAll
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -13,6 +20,11 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.invoke
 import org.springframework.security.config.http.SessionCreationPolicy
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter
+import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler
+import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.CorsConfigurationSource
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 
 @Configuration
@@ -21,7 +33,12 @@ class SecurityConfig(
     private val customOAuth2UserService: CustomOAuth2UserService,
     private val oauth2LoginSuccessHandler: Oauth2LoginSuccessHandler,
     private val oauth2LoginFailureHandler: Oauth2LoginFailureHandler,
-    private val cookieOAuth2AuthorizationRequestRepository: HttpCookieOAuth2AuthorizationRequestRepository
+    private val cookieOAuth2AuthorizationRequestRepository: HttpCookieOAuth2AuthorizationRequestRepository,
+    private val jwtTokenProvider: JwtTokenProvider,
+    private val jwtAuthenticationEntryPoint: JwtAuthenticationEntryPoint,
+    private val jwtAccessDeniedHandler: JwtAccessDeniedHandler,
+    @Value("\${app.cors.allowed-origins}")
+    private val allowedOrigins: List<String>,
 ) {
 
 
@@ -52,6 +69,8 @@ class SecurityConfig(
                 // 컨트롤러 예외 포워딩 경로 (막으면 원래 에러가 401로 가려짐)
                 authorize("/error", permitAll)
 
+                // 추가 정보 입력 전 회원(PENDING)만 가입 완료 API 호출 가능
+                authorize("/users/sighup/**", hasRole("GUEST"))
 
                 // Swagger UI + OpenAPI 문서
                 authorize("/swagger-ui.html", permitAll)
@@ -76,15 +95,43 @@ class SecurityConfig(
                 authenticationFailureHandler = oauth2LoginFailureHandler
             }
 
-            // 로그아웃
+            // 로그아웃: 세션 무효화 + 쿠키 삭제, 리다이렉트 대신 200 응답
+            logout {
+                logoutUrl = "/auth/logout"
+                invalidateHttpSession = true
+                deleteCookies("JSESSIONID")
+                logoutSuccessHandler = HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK)
+            }
 
+            // 인증, 인가 실패, 리다이렉트 대신 401, 403 응답
+            exceptionHandling {
+                authenticationEntryPoint = jwtAuthenticationEntryPoint  // 인가 실패 (401)
+                accessDeniedHandler = jwtAccessDeniedHandler            // 인증 실패 (403)
+            }
 
-            // 미인증 요청
+            // JWT 검증 필터: 인가 판단(AuthorizationFilter) 전에 인증 정보를 채운다
+            addFilterBefore<UsernamePasswordAuthenticationFilter>(
+                JwtAuthenticationFilter(jwtTokenProvider)
+            )
+
+            // TODO: SuccessHandler에서 토큰 발급 후 STATELESS 전환, 세션 로그아웃 설정 제거
 
         }
         return http.build()
     }
 
-
+    @Bean
+    fun corsConfigurationSource(): CorsConfigurationSource {
+        val config = CorsConfiguration().apply {
+            allowedOrigins = this@SecurityConfig.allowedOrigins
+            allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+            allowedHeaders = listOf("*")
+            allowCredentials = true   // 세션 쿠키(JSESSIONID) 전송용
+            maxAge = 3600L
+        }
+        return UrlBasedCorsConfigurationSource().apply {
+            registerCorsConfiguration("/**", config)
+        }
+    }
 
 }
