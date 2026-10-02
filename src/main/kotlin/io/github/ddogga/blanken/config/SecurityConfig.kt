@@ -1,5 +1,7 @@
 package io.github.ddogga.blanken.config
 
+import io.github.ddogga.blanken.config.auth.handler.Oauth2LoginFailureHandler
+import io.github.ddogga.blanken.config.auth.handler.Oauth2LoginSuccessHandler
 import io.github.ddogga.blanken.config.auth.service.CustomOAuth2UserService
 import org.apache.catalina.webresources.TomcatURLStreamHandlerFactory.disable
 import org.springframework.context.annotation.Bean
@@ -17,6 +19,8 @@ import org.springframework.security.web.SecurityFilterChain
 @EnableWebSecurity
 class SecurityConfig(
     private val customOAuth2UserService: CustomOAuth2UserService,
+    private val oauth2LoginSuccessHandler: Oauth2LoginSuccessHandler,
+    private val oauth2LoginFailureHandler: Oauth2LoginFailureHandler
 ) {
 
 
@@ -64,6 +68,8 @@ class SecurityConfig(
                 userInfoEndpoint {
                     userService = customOAuth2UserService
                 }
+                authenticationSuccessHandler = oauth2LoginSuccessHandler
+                authenticationFailureHandler = oauth2LoginFailureHandler
             }
 
             // 로그아웃
