@@ -2,8 +2,8 @@ package io.github.ddogga.blanken.config
 
 import io.github.ddogga.blanken.config.auth.handler.Oauth2LoginFailureHandler
 import io.github.ddogga.blanken.config.auth.handler.Oauth2LoginSuccessHandler
+import io.github.ddogga.blanken.config.auth.repository.HttpCookieOAuth2AuthorizationRequestRepository
 import io.github.ddogga.blanken.config.auth.service.CustomOAuth2UserService
-import org.apache.catalina.webresources.TomcatURLStreamHandlerFactory.disable
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.authorization.AuthorityAuthorizationManager.hasRole
@@ -20,7 +20,8 @@ import org.springframework.security.web.SecurityFilterChain
 class SecurityConfig(
     private val customOAuth2UserService: CustomOAuth2UserService,
     private val oauth2LoginSuccessHandler: Oauth2LoginSuccessHandler,
-    private val oauth2LoginFailureHandler: Oauth2LoginFailureHandler
+    private val oauth2LoginFailureHandler: Oauth2LoginFailureHandler,
+    private val cookieOAuth2AuthorizationRequestRepository: HttpCookieOAuth2AuthorizationRequestRepository
 ) {
 
 
@@ -63,8 +64,11 @@ class SecurityConfig(
 //                authorize(anyRequest, hasRole("USER")) // GUEST 차단 - 운영 환경에서 주석 해제 TODO: 추후 프로파일로 개발, 운영 환경 분리
             }
 
-            // OAuth2 로그인 (인가 요청은 기본값인 세션에 저장)
+            // OAuth2 로그인 (인가 요청은 세션 대신 쿠키에 저장 - JWT 전환을 위해)
             oauth2Login {
+                authorizationEndpoint {
+                    authorizationRequestRepository = cookieOAuth2AuthorizationRequestRepository
+                }
                 userInfoEndpoint {
                     userService = customOAuth2UserService
                 }
