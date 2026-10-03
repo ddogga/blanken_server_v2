@@ -17,12 +17,17 @@ object CookieUtils {
 
 
     fun getCookie(request: HttpServletRequest, name: String): Cookie? =
-        request.cookies?.firstOrNull { it.name == name}
+        request.cookies?.firstOrNull { it.name == name }
 
-    fun addCookie(response: HttpServletResponse, name: String, value: String, maxAge: Duration) {
-
+    fun addCookie(
+        response: HttpServletResponse,
+        name: String,
+        value: String,
+        maxAge: Duration,
+        path: String = "/",
+        ) {
         val cookie = ResponseCookie.from(name, value)
-            .path("/")
+            .path(path)
             .httpOnly(true)
             .sameSite("Lax")
             .maxAge(maxAge)
@@ -33,8 +38,8 @@ object CookieUtils {
 
 
     /** 같은 이름, 경로로 maxAge = 0 쿠키를 보내 브라우저가 삭제하게 한다*/
-    fun deleteCookie(response : HttpServletResponse, name: String) {
-        addCookie(response, name, "", Duration.ZERO)
+    fun deleteCookie(response : HttpServletResponse, name: String, path: String = "/") {
+        addCookie(response, name, "", Duration.ZERO, path)
     }
 
 

@@ -48,7 +48,7 @@ class JwtTokenProvider (
 
 
     /**
-     * tokenId : Redis에 저장할 값
+     * tokenId : UUID, Redis에 저장할 값
      */
     fun createRefreshToken(userId: Long): IssuedRefreshToken {
         val tokenId = UUID.randomUUID().toString()
