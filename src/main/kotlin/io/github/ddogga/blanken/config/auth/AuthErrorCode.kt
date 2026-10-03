@@ -14,6 +14,7 @@ enum class AuthErrorCode(
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."),        // 토큰 없음 -> 로그인
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "토큰이 만료되었습니다."),    // 만료 -> /auth/refresh 재발급 시도
     INVALID_TOKEN(HttpStatus.UNAUTHORIZED, "유효하지 않은 토큰입니다."),  // 위조, 형식 오류 -> 로그인
+    REFRESH_TOKEN_INVALID(HttpStatus.UNAUTHORIZED, "다시 로그인해 주세요."), // 재발급 실패 -> 로그인
     ACCESS_DENIED(HttpStatus.FORBIDDEN, "접근 권한이 없습니다.");        // 인증은 됐지만 권한 부족
 
 
