@@ -8,6 +8,9 @@ import io.github.ddogga.blanken.dto.auth.Oauth2UserInfo
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.user.LoginUser
 import io.github.ddogga.blanken.dto.user.PasswordChangeRequest
+import io.github.ddogga.blanken.dto.user.SignupRequest
+import io.github.ddogga.blanken.dto.user.SignupResponse
+import io.github.ddogga.blanken.dto.user.SignupResult
 import io.github.ddogga.blanken.dto.user.UserCreateRequest
 import io.github.ddogga.blanken.dto.user.UserResponse
 import io.github.ddogga.blanken.dto.user.UserUpdateRequest
@@ -17,9 +20,11 @@ import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.UserRepository
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Pageable
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.Instant
 
 @Service
 @Transactional(readOnly = true)
@@ -50,6 +55,34 @@ class UserService(
 			throw DuplicateEmailException(request.email)
 		}
 	}
+
+    /**
+     * PENDING/GUEST 회원을 ACTIVE/USER로 전환
+     * 토큰 발급은 하지 않음. -> 트랜잭션이 커밋된 뒤 컨트롤러에서 발급 -> DB와 토큰 내용 불일치 방지
+     */
+    @Transactional
+    fun signup(userId: Long, request: SignupRequest): SignupResponse {
+
+        val user = userRepository.findByIdOrNull(userId)
+            ?: return SignupResponse.from(null, null, SignupResult.USER_NOT_FOUND)
+
+        if (user.userStatus != UserStatus.PENDING) {
+            return SignupResponse.from(user.id, user.userRole, SignupResult.ALREADY_COMPLETED)
+        }
+
+        user.completeSignup(
+            nickname = request.nickname.trim(),
+            marketingAgreed = request.agreeMarketing,
+            termsAgreedAt = Instant.now()
+        )
+
+        return SignupResponse.from(
+            userId = user.id,
+            userRole = user.userRole,
+            signupResult = SignupResult.COMPLETED
+        )
+    }
+
 
 	fun getById(id: Long): UserResponse = UserResponse.from(findUserOrThrow(id))
 

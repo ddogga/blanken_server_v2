@@ -5,6 +5,7 @@ import io.github.ddogga.blanken.domain.User
 import io.github.ddogga.blanken.domain.UserRole
 import io.github.ddogga.blanken.domain.UserStatus
 import io.swagger.v3.oas.annotations.media.Schema
+import jakarta.validation.constraints.AssertTrue
 import jakarta.validation.constraints.Email
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size
@@ -108,3 +109,48 @@ data class LoginUser(
         )
     }
 }
+
+
+/**
+ * 소셜 로그인 후 화면에서 추가 정보 입력후
+ *  GUEST -> USER
+ *  PENDING -> ACTIVE
+ *  로 전환 요청 dto
+ */
+data class SignupRequest(
+    @field:NotBlank(message = "닉네임을 입력해 주세요.")
+    @field:Size(min = 2, max = 20, message = "닉네임은 2~20자로 입력해 주세요.")
+    val nickname: String = "",
+
+    @field:AssertTrue(message = "이용약관에 동의해 주세요.")
+    val agreeTerms: Boolean = false,
+
+    @field:AssertTrue(message = "개인정보 처리방침에 동의해 주세요.")
+    val agreePrivacy: Boolean = false,
+
+    val agreeMarketing: Boolean = false,
+)
+
+
+data class SignupResponse (
+    val userId: Long?,
+    val userRole: UserRole?,
+    val signupResult: SignupResult,
+) {
+    companion object {
+        fun from(userId: Long?, userRole: UserRole?, signupResult: SignupResult): SignupResponse =
+            SignupResponse(
+                userId = userId,
+                userRole = userRole,
+                signupResult = signupResult
+            )
+    }
+}
+
+enum class SignupResult {
+    COMPLETED,
+    ALREADY_COMPLETED,
+    USER_NOT_FOUND
+}
+
+

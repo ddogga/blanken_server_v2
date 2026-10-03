@@ -1,7 +1,12 @@
 package io.github.ddogga.blanken.controller
 
+import io.github.ddogga.blanken.config.auth.jwt.JwtTokenProvider
+import io.github.ddogga.blanken.dto.auth.AuthUser
+import io.github.ddogga.blanken.dto.auth.JwtProperties
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.user.PasswordChangeRequest
+import io.github.ddogga.blanken.dto.user.SignupRequest
+import io.github.ddogga.blanken.dto.user.SignupResult
 import io.github.ddogga.blanken.dto.user.UserCreateRequest
 import io.github.ddogga.blanken.dto.user.UserResponse
 import io.github.ddogga.blanken.dto.user.UserUpdateRequest
@@ -12,7 +17,9 @@ import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
+import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -29,6 +36,8 @@ import java.net.URI
 @RequestMapping("/api/users")
 class UserController(
 	private val userService: UserService,
+    private val jwtTokenProvider: JwtTokenProvider,
+    private val jwtProperties: JwtProperties,
 ) {
 
 	@Operation(summary = "회원가입", description = "이메일·비밀번호·닉네임으로 유저를 생성합니다.")
@@ -37,6 +46,32 @@ class UserController(
 		val newUser = userService.create(request)
 		return ResponseEntity.created(URI.create("/api/users/${newUser.id}")).body(newUser)
 	}
+
+    @Operation(summary = "회원가입", description = "")
+    @PostMapping("/signup")
+    fun signup(
+        @AuthenticationPrincipal authUser: AuthUser,
+        @Valid @RequestBody request: SignupRequest,
+    ): ResponseEntity<Any> {
+        val response = userService.signup(authUser.userId, request)
+
+        if (response.signupResult == SignupResult.COMPLETED) {
+            return ResponseEntity.ok(AccessTokenResponse(
+                accessToken = jwtTokenProvider.createAccessToken(response.userId!!, response.userRole!!),
+                expiresIn = jwtProperties.accessTokenExpiry.seconds
+            ))
+        } else if (response.signupResult == SignupResult.ALREADY_COMPLETED) {
+            return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(ErrorResponse("SIGNUP_ALREADY_COMPLETED", "이미 가입이 완료된 회원입니다."))
+        } else if (response.signupResult == SignupResult.USER_NOT_FOUND) {
+            return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(ErrorResponse("USER_NOT_FOUND", "회원 정보를 찾을 수 없습니다."))
+        } else throw RuntimeException("잘못된 회원가입 응답 정보")
+    }
+
+
 
 	@Operation(summary = "유저 단건 조회")
 	@GetMapping("/{id}")

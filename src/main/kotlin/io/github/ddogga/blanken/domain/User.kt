@@ -9,11 +9,12 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
+import java.time.Instant
 
 /**
  *
- * 이메일은 유니크 제약 조건 x
- * 같은 이메일로 소셜 , 일반 회원 가입 가능
+ * 이메일은 유니크 설정
+ * 소셜 로그인/가입만 허용.
  *
  */
 
@@ -28,7 +29,7 @@ import jakarta.persistence.UniqueConstraint
     )
 class User(
 
-    @Column(name = "email", nullable = false, length = 255)
+    @Column(name = "email", nullable = false, length = 255, unique = true)
 	var email: String,
 
     //필요시 추가
@@ -61,4 +62,31 @@ class User(
 	@Column(name = "id")
 	val id: Long? = null,
 
-    ) : BaseTimeEntity()
+    ) : BaseTimeEntity() {
+
+
+    @Column(name = "terms_agreed_at")
+    var termsAgreedAt: Instant? = null
+        protected set
+
+    @Column(name = "marketing_agreed", nullable = false)
+    var marketingAgreed: Boolean = false
+        protected set
+
+
+
+    fun completeSignup(
+        nickname: String,
+        marketingAgreed: Boolean,
+        termsAgreedAt: Instant
+    ) {
+        this.nickname = nickname
+        this.userRole = UserRole.USER
+        this.userStatus = UserStatus.ACTIVE
+        this.termsAgreedAt = termsAgreedAt
+        this.marketingAgreed = marketingAgreed
+    }
+
+
+
+}
