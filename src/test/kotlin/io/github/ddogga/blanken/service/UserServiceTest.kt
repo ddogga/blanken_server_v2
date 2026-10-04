@@ -18,6 +18,7 @@ import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertNotNull
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.crypto.password.PasswordEncoder
 import java.time.Instant
@@ -171,7 +172,8 @@ class UserServiceTest {
 		userService.delete(USER_ID)
 
 		// then
-        verify(exactly = 1) {userRepository.findByIdAndUserStatus(USER_ID, UserStatus.WITHDRAWN)}
+        assertEquals(UserStatus.WITHDRAWN, user.userStatus)
+        assertNotNull(user.withdrawnAt)
     }
 
 	@Test

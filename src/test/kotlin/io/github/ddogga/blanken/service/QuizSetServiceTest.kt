@@ -188,7 +188,6 @@ class QuizSetServiceTest {
 
 	private fun user(): User =
 		User(email = EMAIL,
-            password = "hashed",
             nickname = NICKNAME,
             null,
             null,

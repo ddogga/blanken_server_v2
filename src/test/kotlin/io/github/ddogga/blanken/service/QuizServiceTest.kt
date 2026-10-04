@@ -105,7 +105,7 @@ class QuizServiceTest {
 
     private fun quizSet(category: Category, id: Long): QuizSet =
         QuizSet(
-            owner = User("x@x.io", "pass", "nick", null, null,
+            owner = User("x@x.io", "nick", null, null,
 
                 UserStatus.ACTIVE, UserRole.USER, 1L).apply {
                 createdAt = CREATED_AT

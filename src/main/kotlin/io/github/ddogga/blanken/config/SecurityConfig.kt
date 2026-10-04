@@ -95,14 +95,6 @@ class SecurityConfig(
                 authenticationFailureHandler = oauth2LoginFailureHandler
             }
 
-            // 로그아웃: 세션 무효화 + 쿠키 삭제, 리다이렉트 대신 200 응답
-            logout {
-                logoutUrl = "/auth/logout"
-                invalidateHttpSession = true
-                deleteCookies("JSESSIONID")
-                logoutSuccessHandler = HttpStatusReturningLogoutSuccessHandler(HttpStatus.OK)
-            }
-
             // 인증, 인가 실패, 리다이렉트 대신 401, 403 응답
             exceptionHandling {
                 authenticationEntryPoint = jwtAuthenticationEntryPoint  // 인가 실패 (401)
@@ -113,8 +105,6 @@ class SecurityConfig(
             addFilterBefore<UsernamePasswordAuthenticationFilter>(
                 JwtAuthenticationFilter(jwtTokenProvider)
             )
-
-            // TODO: SuccessHandler에서 토큰 발급 후 STATELESS 전환, 세션 로그아웃 설정 제거
 
         }
         return http.build()
