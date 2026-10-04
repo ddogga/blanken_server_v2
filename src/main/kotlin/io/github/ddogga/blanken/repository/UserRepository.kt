@@ -2,6 +2,7 @@ package io.github.ddogga.blanken.repository
 
 import io.github.ddogga.blanken.domain.OauthProvider
 import io.github.ddogga.blanken.domain.User
+import io.github.ddogga.blanken.domain.UserStatus
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface UserRepository : JpaRepository<User, Long> {
@@ -13,4 +14,6 @@ interface UserRepository : JpaRepository<User, Long> {
     fun findFirstByOrderByIdAsc(): User?
 
     fun findByOauthProviderAndProviderId(oauthProvider: OauthProvider, provider: String): User?
+
+    fun findByIdAndUserStatus(id: Long, userStatus: UserStatus): User?
 }

@@ -33,28 +33,32 @@ class UserService(
 	private val passwordEncoder: PasswordEncoder,
 ) {
 
-	@Transactional
-	fun create(request: UserCreateRequest): UserResponse {
-		if (userRepository.existsByEmail(request.email)) {
-			throw DuplicateEmailException(request.email)
-		}
 
-		val user = User(
-			email = request.email,
-			password = encode(request.password),
-			nickname = request.nickname,
-            null,
-            null,
-            userStatus = UserStatus.ACTIVE,
-            userRole = UserRole.USER,
-		)
-
-		return try {
-			UserResponse.from(userRepository.saveAndFlush(user))
-		} catch (ex: DataIntegrityViolationException) {
-			throw DuplicateEmailException(request.email)
-		}
-	}
+    /**
+     * 일반 회원가입은 지원하지 않는다. 소셜 회원가입만 허용
+     */
+//	@Transactional
+//	fun create(request: UserCreateRequest): UserResponse {
+//		if (userRepository.existsByEmail(request.email)) {
+//			throw DuplicateEmailException(request.email)
+//		}
+//
+//		val user = User(
+//			email = request.email,
+//			password = encode(request.password),
+//			nickname = request.nickname,
+//            null,
+//            null,
+//            userStatus = UserStatus.ACTIVE,
+//            userRole = UserRole.USER,
+//		)
+//
+//		return try {
+//			UserResponse.from(userRepository.saveAndFlush(user))
+//		} catch (ex: DataIntegrityViolationException) {
+//			throw DuplicateEmailException(request.email)
+//		}
+//	}
 
     /**
      * PENDING/GUEST 회원을 ACTIVE/USER로 전환
@@ -97,20 +101,19 @@ class UserService(
 		return UserResponse.from(user)
 	}
 
-	@Transactional
-	fun changePassword(id: Long, request: PasswordChangeRequest) {
-		val user = findUserOrThrow(id)
-		if (!passwordEncoder.matches(request.currentPassword, user.password)) {
-			throw InvalidPasswordException()
-		}
-		user.password = encode(request.newPassword)
-	}
+//	@Transactional
+//	fun changePassword(id: Long, request: PasswordChangeRequest) {
+//		val user = findUserOrThrow(id)
+//		if (!passwordEncoder.matches(request.currentPassword, user.password)) {
+//			throw InvalidPasswordException()
+//		}
+//		user.password = encode(request.newPassword)
+//	}
 
 	@Transactional
 	fun delete(id: Long) {
 		val user = findUserOrThrow(id)
-
-		userRepository.delete(user)
+        user.deleteUser()
 	}
 
     fun findLoginUser(provider: OauthProvider, providerId: String): LoginUser? =
@@ -122,7 +125,6 @@ class UserService(
 
         val user = User(
             email = NEW_USER_EMAIL,
-            password = null,
             nickname = NEW_USER_NAME,
             oauthProvider = userInfo.oauthProvider,
             providerId = userInfo.providerId,

@@ -1,10 +1,16 @@
 -- 개발용 초기 데이터.
 --
--- 여러 번 실행해도 안전하다. 카테고리는 name UNIQUE 를 이용한 ON CONFLICT DO NOTHING,
--- 유저는 `users.email` 에 UNIQUE 가 없어졌으므로(같은 이메일로 소셜·일반 가입 허용)
---   `WHERE NOT EXISTS` 로 **(email, provider IS NULL) 조합이 없을 때만** 넣는다.
--- 퀴즈셋·퀴즈는 유니크 제약이 없어 `WHERE NOT EXISTS` 로 **테이블이 비어 있을 때만** 넣는다.
--- (따라서 퀴즈셋이 한 건이라도 있으면 아래 퀴즈셋/퀴즈 블록은 통째로 건너뛴다.)
+-- 여러 번 실행해도 안전하다.
+--   카테고리 — `name` UNIQUE 를 이용한 ON CONFLICT DO NOTHING
+--   유저     — `(provider, provider_id)` UNIQUE 를 이용한 ON CONFLICT DO NOTHING
+--   퀴즈셋·퀴즈 — 유니크 제약이 없어 `WHERE NOT EXISTS` 로 **테이블이 비어 있을 때만** 넣는다.
+--                 (퀴즈셋이 한 건이라도 있으면 그 블록은 통째로 건너뛴다.)
+--
+-- 2026-10-04 User 엔티티 변경 반영
+--   - `password` 컬럼이 사라졌다 — 소셜 로그인/가입만 허용하므로 비밀번호를 보관하지 않는다.
+--     그래서 시드 유저도 전부 **소셜 계정**이다 (`provider` / `provider_id` 가 NOT NULL).
+--   - `terms_agreed_at` / `marketing_agreed` / `withdrawn_at` 이 추가됐다.
+--     `marketing_agreed` 는 NOT NULL 이라 모든 행이 값을 가져야 한다.
 --
 -- 수동 실행:  psql -U user -d blanken -f src/main/resources/data.sql
 -- 기동 시 자동 실행:  application.yaml 에 아래 두 줄 추가
@@ -30,37 +36,56 @@ ON CONFLICT (name) DO NOTHING;
 
 
 -- ──────────────────────────────────────────────────────────────────────────
--- 유저 4명 — 전부 **일반(로컬) 계정**이다 (`provider` / `provider_id` 가 NULL).
--- 비밀번호는 모두 `password123!` 의 BCrypt 해시다 (cost 10).
+-- 유저 6명 — 전부 **소셜 계정**이다. 로컬(비밀번호) 계정은 더 이상 존재하지 않는다.
 --
--- 앞의 3명은 아래 퀴즈셋 블록이 이메일로 직접 참조하므로 이름·순서를 바꾸지 않는다.
--- `test@test.io` 는 퀴즈셋을 하나도 갖지 않는 **소비자 유저**다.
--- 파일 맨 아래 좋아요 블록이 이 유저 앞으로 30건을 달아 둔다.
+-- 앞의 4명은 기존과 같은 이메일·닉네임을 유지한다.
+--   - 앞 3명은 아래 퀴즈셋 블록이 이메일로 직접 참조하므로 이름·순서를 바꾸지 않는다.
+--   - `test@test.io` 는 퀴즈셋을 하나도 갖지 않는 **소비자 유저**다.
+--     파일 맨 아래 좋아요 블록이 이 유저 앞으로 30건을 달아 둔다.
+--     `QuizSetLikeRepositoryTest` 가 `findByEmail` 로 이 유저를 찾으므로
+--     **이 이메일을 가진 행은 반드시 하나뿐이어야 한다.**
 --
--- `users.email` 의 UNIQUE 가 없어져서 `ON CONFLICT (email)` 을 더는 쓸 수 없다.
--- 남은 UNIQUE 는 `(provider, provider_id)` 뿐인데 로컬 계정은 둘 다 NULL 이고
--- PostgreSQL 에서 NULL 끼리는 서로 다른 값으로 취급돼 충돌이 잡히지 않는다.
--- 그래서 행마다 `WHERE NOT EXISTS` 로 직접 거른다.
+-- 뒤의 2명은 새로 추가된 상태 전이를 눈으로 확인하기 위한 것이다.
+--   - PENDING/GUEST  : 소셜 인증만 끝나고 추가 정보를 아직 안 넣은 상태.
+--                      `UserService.socialRegister` 가 만드는 모습 그대로다
+--                      (이메일·닉네임이 NEW_USER_EMAIL / NEW_USER_NAME 과 같다).
+--   - WITHDRAWN/USER : 탈퇴 후 재가입 쿨타임 중인 계정. `withdrawn_at` 이 채워져 있다.
+--
+-- `provider_id` 는 전부 `seed-` 로 시작한다. 실제 소셜 로그인으로 생긴 계정과
+-- 섞이지 않게 아래 블록들이 이 접두사로 시드 유저만 골라낸다.
+--
+-- `users.email` 에는 UNIQUE 가 없지만(같은 이메일로 제공자별 1개씩 가입 가능)
+-- `(provider, provider_id)` 에는 UNIQUE 가 있고 시드 유저는 둘 다 NOT NULL 이라
+-- 예전처럼 `WHERE NOT EXISTS` 로 우회할 필요 없이 ON CONFLICT 를 그대로 쓸 수 있다.
 -- ──────────────────────────────────────────────────────────────────────────
-INSERT INTO users (email, password, nickname, provider, provider_id, user_status, user_role, created_at, updated_at)
+INSERT INTO users (email, nickname, provider, provider_id,
+                   user_status, user_role,
+                   terms_agreed_at, marketing_agreed, withdrawn_at,
+                   created_at, updated_at)
 SELECT d.email,
-       '$2y$10$8wQ5/.EDz75v9fNDiPOux.awk0flP4dWpOeZ7.NLGYOBtFFaGHvnK',
        d.nickname,
-       NULL,
-       NULL,
-       'ACTIVE',
-       'USER',
+       d.provider,
+       d.provider_id,
+       d.user_status,
+       d.user_role,
+       -- 약관 동의 시각은 가입을 **완료**한 계정만 갖는다 (`User.completeSignup` 에서 채워진다).
+       CASE WHEN d.user_status = 'PENDING' THEN NULL
+            ELSE now() - (d.days_ago || ' days')::interval END,
+       d.marketing_agreed,
+       -- 탈퇴 시각은 WITHDRAWN 만 갖는다 (`User.deleteUser` 에서 채워진다).
+       CASE WHEN d.user_status = 'WITHDRAWN' THEN now() - interval '12 hours'
+            ELSE NULL END,
        now() - (d.days_ago || ' days')::interval,
        now() - (d.days_ago || ' days')::interval
 FROM (VALUES
-    ('blanken@blanken.io', 'blanken', 90),
-    ('hyeon@blanken.io',   '현이',    60),
-    ('mina@blanken.io',    '미나',    30),
-    ('test@test.io',       '테스터',  10)
-) AS d(email, nickname, days_ago)
-WHERE NOT EXISTS (
-    SELECT 1 FROM users u WHERE u.email = d.email AND u.provider IS NULL
-);
+    ('blanken@blanken.io', 'blanken',     'KAKAO', 'seed-blanken',   'ACTIVE',    'USER',  true,  90),
+    ('hyeon@blanken.io',   '현이',        'KAKAO', 'seed-hyeon',     'ACTIVE',    'USER',  false, 60),
+    ('mina@blanken.io',    '미나',        'NAVER', 'seed-mina',      'ACTIVE',    'USER',  true,  30),
+    ('test@test.io',       '테스터',      'KAKAO', 'seed-test',      'ACTIVE',    'USER',  false, 10),
+    ('newbie@blanken.com', '새로운 유저', 'NAVER', 'seed-pending',   'PENDING',   'GUEST', false,  2),
+    ('bye@blanken.io',     '떠난이',      'KAKAO', 'seed-withdrawn', 'WITHDRAWN', 'USER',  false, 20)
+) AS d(email, nickname, provider, provider_id, user_status, user_role, marketing_agreed, days_ago)
+ON CONFLICT (provider, provider_id) DO NOTHING;
 
 
 -- ──────────────────────────────────────────────────────────────────────────
@@ -140,9 +165,9 @@ FROM (
     JOIN cats   c ON c.i = g.n % 10
     JOIN kinds  k ON k.i = g.n % 5
 ) AS d(email, category, title, description, visibility, like_count, quiz_count, days_ago)
--- 이메일이 더는 UNIQUE 가 아니므로 소유자를 **로컬 계정으로 한정**한다.
--- 같은 이메일의 소셜 계정이 생기면 조인이 두 배로 불어난다.
-JOIN users u ON u.email = d.email AND u.provider IS NULL
+-- 이메일이 UNIQUE 가 아니므로 소유자를 **시드 계정으로 한정**한다.
+-- 같은 이메일로 실제 소셜 가입이 생기면 조인이 두 배로 불어난다.
+JOIN users u ON u.email = d.email AND u.provider_id LIKE 'seed-%'
 JOIN category c ON c.name = d.category
 WHERE NOT EXISTS (SELECT 1 FROM quiz_set);
 
@@ -219,6 +244,6 @@ CROSS JOIN (
     ORDER BY qs.id
     LIMIT 30
 ) AS t
--- 퀴즈셋 블록과 같은 이유로 로컬 계정으로 한정한다.
-WHERE u.email = 'test@test.io' AND u.provider IS NULL
+-- 퀴즈셋 블록과 같은 이유로 시드 계정으로 한정한다.
+WHERE u.provider = 'KAKAO' AND u.provider_id = 'seed-test'
 ON CONFLICT (user_id, quiz_set_id) DO NOTHING;

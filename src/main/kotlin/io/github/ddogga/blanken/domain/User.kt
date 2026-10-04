@@ -13,7 +13,7 @@ import java.time.Instant
 
 /**
  *
- * 이메일은 유니크 설정
+ * email 중복을 허용한다. 같은 이메일, 다른 제공자 회원가입을 허용.
  * 소셜 로그인/가입만 허용.
  *
  */
@@ -29,15 +29,12 @@ import java.time.Instant
     )
 class User(
 
-    @Column(name = "email", nullable = false, length = 255, unique = true)
+    @Column(name = "email", nullable = false, length = 255)
 	var email: String,
 
     //필요시 추가
 //    @Column(name = "phon_number", unique = true)
 //    var phonNumber: String,
-
-    @Column(name = "password")
-    var password: String?,
 
     @Column(name = "nickname")
     var nickname : String,
@@ -73,6 +70,10 @@ class User(
     var marketingAgreed: Boolean = false
         protected set
 
+    @Column(name = "withdrawn_at")
+    var withdrawnAt: Instant? = null
+        protected set
+
 
 
     fun completeSignup(
@@ -87,6 +88,9 @@ class User(
         this.marketingAgreed = marketingAgreed
     }
 
-
+    fun deleteUser() {
+        this.userStatus = UserStatus.WITHDRAWN
+        this.withdrawnAt = Instant.now()
+    }
 
 }
