@@ -1,5 +1,6 @@
 package io.github.ddogga.blanken.config.auth.repository
 
+import io.github.ddogga.blanken.config.auth.jwt.Oauth2AuthorizationRequestStore
 import io.github.ddogga.blanken.config.auth.util.CookieUtils
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -7,50 +8,65 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.security.oauth2.client.web.AuthorizationRequestRepository
 import org.springframework.stereotype.Component
 import java.time.Duration
+import java.util.UUID
 
 
 /**
- * OAuth2 인가 요청(state, redirect_uri 등)을 세션 대신 쿠키에 보관한다.
+ * OAuth2 인가 요청(state, redirect_uri 등)을 Redis에 저장하고 랜덤 키를 클라이언트에 반환한다.
  * 로그인 시작 요청(/oauth2/authorization/{id})과 콜백 요청(/login/oauth2/code/{id}) 사이를 이어주는 저장소
  */
 
 @Component
-class HttpCookieOAuth2AuthorizationRequestRepository: AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
+class HttpCookieOAuth2AuthorizationRequestRepository(
+    private val store: Oauth2AuthorizationRequestStore,
+): AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
 
 
-    /** 콜백 요청에서 쿠키를 역질렬화해서 객체로 인가 요청 복원 */
+    /** 쿠키의 랜덤 키로 Redis에서 조회 */
     override fun loadAuthorizationRequest(request: HttpServletRequest): OAuth2AuthorizationRequest? =
-        CookieUtils.getCookie(request, COOKIE_NAME)
-            ?.let { CookieUtils.deserialize<OAuth2AuthorizationRequest>(it.value)}
+        resolveKey(request)?.let(store::find)
 
-    /** 로그인 시작 요청에서 인가 요청을 쿠키로 저장. null이면 삭제를 의미 */
+    /** 로그인 시 Redis에 요청 정보 저장. 쿠키에는 랜덤 키 발급해서 저장 */
     override fun saveAuthorizationRequest(
         authorizationRequest: OAuth2AuthorizationRequest,
         request: HttpServletRequest,
         response: HttpServletResponse
     ) {
+        // 로그인 버튼을 여러 번 누른 경우 이전 시도의 Redis 값 정리
+        resolveKey(request)?.let(store::delete)
 
-        CookieUtils.addCookie(
-            response = response,
-            name = COOKIE_NAME,
-            value = CookieUtils.serialize(authorizationRequest),
-            maxAge = COOKIE_MAX_AGE
-        )
+        val key = UUID.randomUUID().toString()
+        store.save(key, authorizationRequest, TTL)
+        CookieUtils.addCookie(response, COOKIE_NAME, key, TTL)
     }
 
-    /** 콜백 처리 시작 시 호출: 꺼내 쓰고 바로 삭제 - 일회용 */
+    /** 콜백 처리 시작 시 호출: Redis에서 꺼내면서 삭제(일회용) + 쿠키 삭제 */
     override fun removeAuthorizationRequest(
         request: HttpServletRequest,
         response: HttpServletResponse
-    ): OAuth2AuthorizationRequest? =
-        loadAuthorizationRequest(request).also {
-            CookieUtils.deleteCookie(response, COOKIE_NAME)
-        }
+    ): OAuth2AuthorizationRequest? {
+        val key = resolveKey(request) ?: return null
+        CookieUtils.deleteCookie(response, COOKIE_NAME)
+        return store.consume(key)
+    }
 
+    /** 로그인 실패 시 정리: 인가 요청을 꺼내기 전에 실패한 경우에도 쿠키와 Redis의 값을 함께 지워야 함.*/
+    fun clear(request: HttpServletRequest, response: HttpServletResponse) {
+        resolveKey(request)?.let(store::delete)
+        CookieUtils.deleteCookie(response, COOKIE_NAME)
+    }
+
+    /**
+     * 쿠키 값은 바뀔 수 있으므로 UUID 형식의 랜덤 키만 인정함.
+     */
+    private fun resolveKey(request: HttpServletRequest): String? =
+        CookieUtils.getCookie(request, COOKIE_NAME)
+            ?.value
+            ?.takeIf { runCatching { UUID.fromString(it) }.isSuccess}
 
     companion object {
         const val COOKIE_NAME = "oauth2_auth_request"
-        private val COOKIE_MAX_AGE: Duration = Duration.ofMinutes(3) // Provider 로그인, 동의에 걸리는 시간
+        private val TTL: Duration = Duration.ofMinutes(3)   // 쿠키 만료 = Redis TTL
     }
 
 }
