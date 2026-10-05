@@ -289,7 +289,7 @@ flowchart LR
     A[HTTP 요청] --> B[JwtAuthenticationFilter]
     B --> C[UsernamePasswordAuthenticationFilter]
     C --> D[AuthorizationFilter<br/>인가 판단]
-    D --> E[Controller<br/>@AuthenticationPrincipal AuthUser]
+    D --> E["Controller<br/>@AuthenticationPrincipal AuthUser"]
     D -. 인증 없음 .-> F[JwtAuthenticationEntryPoint<br/>401]
     D -. 권한 부족 .-> G[JwtAccessDeniedHandler<br/>403]
 
@@ -425,11 +425,17 @@ Repository 테스트와 동시성 테스트는 **Testcontainers로 실제 Postgr
 
 <br/>
 
-## 로드맵
+[//]: # (## 로드맵)
 
-| 마일스톤 | 내용 | 상태 |
-| --- | --- | --- |
-| **M1 — 기반** | 소셜 로그인 · JWT, 퀴즈셋 / 퀴즈 CRUD, 학습 기록 | 진행 중 |
-| **M2 — 소셜** | 좋아요(Redis 카운터), 검색 고도화, 팔로우, 알림(MQ + 별도 알림 서비스 + FCM) | 일부 진행 |
-| **M3 — 실시간 대결** | WebSocket, 선착순 판정(`SETNX`), 방 정원(Lua), 스코어보드 | 예정 |
-| **M4 — 고도화 · 운영** | 이어풀기(Redis TTL), Elasticsearch + Nori, Docker, Kubernetes, AWS | 예정 |
+[//]: # ()
+[//]: # (| 마일스톤 | 내용 | 상태 |)
+
+[//]: # (| --- | --- | --- |)
+
+[//]: # (| **M1 — 기반** | 소셜 로그인 · JWT, 퀴즈셋 / 퀴즈 CRUD, 학습 기록 | 진행 중 |)
+
+[//]: # (| **M2 — 소셜** | 좋아요&#40;Redis 카운터&#41;, 검색 고도화, 팔로우, 알림&#40;MQ + 별도 알림 서비스 + FCM&#41; | 일부 진행 |)
+
+[//]: # (| **M3 — 실시간 대결** | WebSocket, 선착순 판정&#40;`SETNX`&#41;, 방 정원&#40;Lua&#41;, 스코어보드 | 예정 |)
+
+[//]: # (| **M4 — 고도화 · 운영** | 이어풀기&#40;Redis TTL&#41;, Elasticsearch + Nori, Docker, Kubernetes, AWS | 예정 |)
