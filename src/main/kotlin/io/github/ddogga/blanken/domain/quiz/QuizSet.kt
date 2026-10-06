@@ -1,5 +1,9 @@
-package io.github.ddogga.blanken.domain
+package io.github.ddogga.blanken.domain.quiz
 
+import io.github.ddogga.blanken.domain.BaseTimeEntity
+import io.github.ddogga.blanken.domain.quiz.Category
+import io.github.ddogga.blanken.domain.user.User
+import io.github.ddogga.blanken.domain.quiz.Visibility
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column

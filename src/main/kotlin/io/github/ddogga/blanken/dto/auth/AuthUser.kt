@@ -1,6 +1,6 @@
 package io.github.ddogga.blanken.dto.auth
 
-import io.github.ddogga.blanken.domain.UserRole
+import io.github.ddogga.blanken.domain.user.UserRole
 
 /**
  * JWT 인증 후 SecurityContext에 담김

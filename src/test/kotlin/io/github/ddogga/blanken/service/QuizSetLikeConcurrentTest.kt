@@ -1,10 +1,10 @@
 package io.github.ddogga.blanken.service
 
 
-import io.github.ddogga.blanken.domain.Category
-import io.github.ddogga.blanken.domain.QuizSet
-import io.github.ddogga.blanken.domain.User
-import io.github.ddogga.blanken.domain.Visibility
+import io.github.ddogga.blanken.domain.quiz.Category
+import io.github.ddogga.blanken.domain.quiz.QuizSet
+import io.github.ddogga.blanken.domain.user.User
+import io.github.ddogga.blanken.domain.quiz.Visibility
 import io.github.ddogga.blanken.repository.CategoryRepository
 import io.github.ddogga.blanken.repository.QuizSetLikeRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository

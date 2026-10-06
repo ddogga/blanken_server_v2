@@ -1,4 +1,4 @@
-package io.github.ddogga.blanken.domain
+package io.github.ddogga.blanken.domain.quiz
 
 enum class QuizSetOrderEnum(val description: String) {
 

@@ -1,6 +1,6 @@
 package io.github.ddogga.blanken.config.auth.jwt
 
-import io.github.ddogga.blanken.domain.UserStatus
+import io.github.ddogga.blanken.domain.user.UserStatus
 import io.github.ddogga.blanken.dto.auth.IssuedRefreshToken
 import io.github.ddogga.blanken.dto.auth.TokenResult
 import io.github.ddogga.blanken.repository.UserRepository

@@ -70,7 +70,7 @@ class SecurityConfig(
                 authorize("/error", permitAll)
 
                 // 추가 정보 입력 전 회원(PENDING)만 가입 완료 API 호출 가능
-                authorize("/users/sighup/**", hasRole("GUEST"))
+                authorize("/api/users/signup/**", hasRole("GUEST"))
 
                 // Swagger UI + OpenAPI 문서
                 authorize("/swagger-ui.html", permitAll)

@@ -1,8 +1,8 @@
 package io.github.ddogga.blanken.service
 
-import io.github.ddogga.blanken.domain.QuizSet
-import io.github.ddogga.blanken.domain.QuizSetLike
-import io.github.ddogga.blanken.domain.User
+import io.github.ddogga.blanken.domain.quiz.QuizSet
+import io.github.ddogga.blanken.domain.quiz.QuizSetLike
+import io.github.ddogga.blanken.domain.user.User
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.exception.QuizSetLikeDuplicationException

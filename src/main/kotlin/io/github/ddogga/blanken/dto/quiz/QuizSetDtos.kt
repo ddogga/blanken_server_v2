@@ -1,7 +1,7 @@
 package io.github.ddogga.blanken.dto.quiz
 
-import io.github.ddogga.blanken.domain.QuizSet
-import io.github.ddogga.blanken.domain.Visibility
+import io.github.ddogga.blanken.domain.quiz.QuizSet
+import io.github.ddogga.blanken.domain.quiz.Visibility
 import io.github.ddogga.blanken.dto.category.CategoryResponse
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank

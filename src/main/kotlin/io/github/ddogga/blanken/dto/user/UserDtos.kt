@@ -1,9 +1,9 @@
 package io.github.ddogga.blanken.dto.user
 
 import io.github.ddogga.blanken.domain.OauthProvider
-import io.github.ddogga.blanken.domain.User
-import io.github.ddogga.blanken.domain.UserRole
-import io.github.ddogga.blanken.domain.UserStatus
+import io.github.ddogga.blanken.domain.user.User
+import io.github.ddogga.blanken.domain.user.UserRole
+import io.github.ddogga.blanken.domain.user.UserStatus
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.AssertTrue
 import jakarta.validation.constraints.Email

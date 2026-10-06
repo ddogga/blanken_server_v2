@@ -2,8 +2,8 @@ package io.github.ddogga.blanken.controller
 
 import com.ninjasquad.springmockk.MockkBean
 import io.github.ddogga.blanken.config.TestSecurityConfig
-import io.github.ddogga.blanken.domain.QuizSetOrderEnum
-import io.github.ddogga.blanken.domain.Visibility
+import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
+import io.github.ddogga.blanken.domain.quiz.Visibility
 import io.github.ddogga.blanken.dto.category.CategoryResponse
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
@@ -19,7 +19,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Pageable
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get

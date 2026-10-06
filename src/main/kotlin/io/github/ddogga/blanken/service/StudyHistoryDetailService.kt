@@ -1,13 +1,11 @@
 package io.github.ddogga.blanken.service
 
-import io.github.ddogga.blanken.domain.Quiz
-import io.github.ddogga.blanken.domain.StudyHistory
-import io.github.ddogga.blanken.domain.StudyHistoryDetail
+import io.github.ddogga.blanken.domain.quiz.Quiz
+import io.github.ddogga.blanken.domain.history.StudyHistory
+import io.github.ddogga.blanken.domain.history.StudyHistoryDetail
 import io.github.ddogga.blanken.dto.history.StudyHistoryDetailRequest
-import io.github.ddogga.blanken.exception.QuizNotFoundException
 import io.github.ddogga.blanken.repository.QuizRepository
 import io.github.ddogga.blanken.repository.StudyHistoryDetailRepository
-import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 

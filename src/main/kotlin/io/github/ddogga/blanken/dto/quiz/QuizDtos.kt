@@ -1,6 +1,6 @@
 package io.github.ddogga.blanken.dto.quiz
 
-import io.github.ddogga.blanken.domain.Quiz
+import io.github.ddogga.blanken.domain.quiz.Quiz
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Pattern

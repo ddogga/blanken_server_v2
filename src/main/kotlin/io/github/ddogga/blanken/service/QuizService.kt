@@ -1,8 +1,8 @@
 package io.github.ddogga.blanken.service
 
-import io.github.ddogga.blanken.domain.Quiz
-import io.github.ddogga.blanken.domain.QuizSet
-import io.github.ddogga.blanken.domain.Visibility
+import io.github.ddogga.blanken.domain.quiz.Quiz
+import io.github.ddogga.blanken.domain.quiz.QuizSet
+import io.github.ddogga.blanken.domain.quiz.Visibility
 import io.github.ddogga.blanken.dto.quiz.QuizRequest
 import io.github.ddogga.blanken.dto.quiz.QuizResponse
 import io.github.ddogga.blanken.exception.QuizNotFoundException

@@ -1,7 +1,7 @@
 package io.github.ddogga.blanken.dto.auth
 
-import io.github.ddogga.blanken.domain.UserRole
-import io.github.ddogga.blanken.domain.UserStatus
+import io.github.ddogga.blanken.domain.user.UserRole
+import io.github.ddogga.blanken.domain.user.UserStatus
 import org.springframework.security.core.GrantedAuthority
 import org.springframework.security.core.authority.SimpleGrantedAuthority
 import org.springframework.security.oauth2.core.user.OAuth2User

@@ -1,31 +1,22 @@
 package io.github.ddogga.blanken.service
 
-import io.github.ddogga.blanken.domain.User
-import io.github.ddogga.blanken.domain.UserRole
-import io.github.ddogga.blanken.domain.UserStatus
-import io.github.ddogga.blanken.dto.user.PasswordChangeRequest
-import io.github.ddogga.blanken.dto.user.UserCreateRequest
+import io.github.ddogga.blanken.domain.user.User
+import io.github.ddogga.blanken.domain.user.UserRole
+import io.github.ddogga.blanken.domain.user.UserStatus
 import io.github.ddogga.blanken.dto.user.UserUpdateRequest
-import io.github.ddogga.blanken.exception.DuplicateEmailException
 import io.github.ddogga.blanken.exception.ErrorCode
-import io.github.ddogga.blanken.exception.InvalidPasswordException
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.UserRepository
-import io.mockk.Runs
 import io.mockk.every
-import io.mockk.just
 import io.mockk.mockk
-import io.mockk.slot
 import io.mockk.verify
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertNotNull
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.security.crypto.password.PasswordEncoder
 import java.time.Instant
 import java.util.Optional
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
-import kotlin.test.assertNotEquals
 
 
 class UserServiceTest {

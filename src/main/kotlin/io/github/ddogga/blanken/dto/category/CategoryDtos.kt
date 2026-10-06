@@ -1,6 +1,6 @@
 package io.github.ddogga.blanken.dto.category
 
-import io.github.ddogga.blanken.domain.Category
+import io.github.ddogga.blanken.domain.quiz.Category
 import io.swagger.v3.oas.annotations.media.Schema
 
 

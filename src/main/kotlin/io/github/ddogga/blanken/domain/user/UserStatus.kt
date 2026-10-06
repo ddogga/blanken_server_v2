@@ -1,4 +1,4 @@
-package io.github.ddogga.blanken.domain
+package io.github.ddogga.blanken.domain.user
 
 enum class UserStatus(val description: String) {
 

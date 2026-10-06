@@ -1,7 +1,7 @@
 package io.github.ddogga.blanken.repository
 
 import io.github.ddogga.blanken.config.QuerydslConfig
-import io.github.ddogga.blanken.domain.QuizSetOrderEnum
+import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
 import io.github.ddogga.blanken.support.PostgresTestContainerConfig
 import jakarta.persistence.EntityManager
 import org.junit.jupiter.api.Assertions.assertTrue

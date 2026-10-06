@@ -1,8 +1,8 @@
 package io.github.ddogga.blanken.repository
 
 import io.github.ddogga.blanken.domain.OauthProvider
-import io.github.ddogga.blanken.domain.User
-import io.github.ddogga.blanken.domain.UserStatus
+import io.github.ddogga.blanken.domain.user.User
+import io.github.ddogga.blanken.domain.user.UserStatus
 import org.springframework.data.jpa.repository.JpaRepository
 
 interface UserRepository : JpaRepository<User, Long> {

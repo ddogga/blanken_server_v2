@@ -1,24 +1,19 @@
 package io.github.ddogga.blanken.service
 
 import io.github.ddogga.blanken.domain.OauthProvider
-import io.github.ddogga.blanken.domain.User
-import io.github.ddogga.blanken.domain.UserRole
-import io.github.ddogga.blanken.domain.UserStatus
+import io.github.ddogga.blanken.domain.user.User
+import io.github.ddogga.blanken.domain.user.UserRole
+import io.github.ddogga.blanken.domain.user.UserStatus
 import io.github.ddogga.blanken.dto.auth.Oauth2UserInfo
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.user.LoginUser
-import io.github.ddogga.blanken.dto.user.PasswordChangeRequest
 import io.github.ddogga.blanken.dto.user.SignupRequest
 import io.github.ddogga.blanken.dto.user.SignupResponse
 import io.github.ddogga.blanken.dto.user.SignupResult
-import io.github.ddogga.blanken.dto.user.UserCreateRequest
 import io.github.ddogga.blanken.dto.user.UserResponse
 import io.github.ddogga.blanken.dto.user.UserUpdateRequest
-import io.github.ddogga.blanken.exception.DuplicateEmailException
-import io.github.ddogga.blanken.exception.InvalidPasswordException
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.UserRepository
-import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.Pageable
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.security.crypto.password.PasswordEncoder

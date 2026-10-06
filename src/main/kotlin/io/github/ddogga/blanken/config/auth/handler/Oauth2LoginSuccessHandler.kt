@@ -2,8 +2,8 @@ package io.github.ddogga.blanken.config.auth.handler
 
 import io.github.ddogga.blanken.config.auth.jwt.AuthTokenService
 import io.github.ddogga.blanken.config.auth.jwt.RefreshTokenCookie
-import io.github.ddogga.blanken.domain.UserRole
-import io.github.ddogga.blanken.domain.UserStatus
+import io.github.ddogga.blanken.domain.user.UserRole
+import io.github.ddogga.blanken.domain.user.UserStatus
 import io.github.ddogga.blanken.dto.auth.CustomOauth2User
 import io.github.ddogga.blanken.dto.auth.JwtProperties
 import io.github.ddogga.blanken.dto.auth.Oauth2RedirectUrls

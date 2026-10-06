@@ -1,5 +1,7 @@
-package io.github.ddogga.blanken.domain
+package io.github.ddogga.blanken.domain.user
 
+import io.github.ddogga.blanken.domain.BaseTimeEntity
+import io.github.ddogga.blanken.domain.OauthProvider
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType

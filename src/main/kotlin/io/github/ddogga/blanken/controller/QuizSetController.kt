@@ -1,6 +1,6 @@
 package io.github.ddogga.blanken.controller
 
-import io.github.ddogga.blanken.domain.QuizSetOrderEnum
+import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse

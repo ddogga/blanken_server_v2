@@ -9,8 +9,8 @@ import com.querydsl.jpa.impl.JPAQueryFactory
 import io.github.ddogga.blanken.domain.QCategory.category
 import io.github.ddogga.blanken.domain.QQuizSet.quizSet
 import io.github.ddogga.blanken.domain.QUser.user
-import io.github.ddogga.blanken.domain.QuizSetOrderEnum
-import io.github.ddogga.blanken.domain.Visibility
+import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
+import io.github.ddogga.blanken.domain.quiz.Visibility
 import io.github.ddogga.blanken.dto.category.CategoryResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import org.springframework.data.domain.Page

@@ -1,6 +1,6 @@
 package io.github.ddogga.blanken.repository
 
-import io.github.ddogga.blanken.domain.QuizSetLike
+import io.github.ddogga.blanken.domain.quiz.QuizSetLike
 import io.github.ddogga.blanken.repository.querydsl.QuizSetLikeCustomRepository
 import org.springframework.data.jpa.repository.JpaRepository
 

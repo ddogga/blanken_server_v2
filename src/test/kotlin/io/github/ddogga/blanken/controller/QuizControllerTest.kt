@@ -2,7 +2,7 @@ package io.github.ddogga.blanken.controller
 
 import com.ninjasquad.springmockk.MockkBean
 import io.github.ddogga.blanken.config.TestSecurityConfig
-import io.github.ddogga.blanken.domain.Quiz
+import io.github.ddogga.blanken.domain.quiz.Quiz
 import io.github.ddogga.blanken.dto.quiz.QuizResponse
 import io.github.ddogga.blanken.exception.QuizNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetAccessDeniedException

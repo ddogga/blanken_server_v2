@@ -1,7 +1,7 @@
 package io.github.ddogga.blanken.dto.history
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import io.github.ddogga.blanken.domain.StudyHistory
+import io.github.ddogga.blanken.domain.history.StudyHistory
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.Valid
 import jakarta.validation.constraints.AssertTrue

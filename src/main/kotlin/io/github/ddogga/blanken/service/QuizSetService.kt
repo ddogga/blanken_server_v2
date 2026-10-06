@@ -1,8 +1,8 @@
 package io.github.ddogga.blanken.service
 
-import io.github.ddogga.blanken.domain.Category
-import io.github.ddogga.blanken.domain.QuizSet
-import io.github.ddogga.blanken.domain.QuizSetOrderEnum
+import io.github.ddogga.blanken.domain.quiz.Category
+import io.github.ddogga.blanken.domain.quiz.QuizSet
+import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
