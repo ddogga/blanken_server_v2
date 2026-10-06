@@ -72,10 +72,9 @@ class User(
     var marketingAgreed: Boolean = false
         protected set
 
-    @Column(name = "withdrawn_at")
+    @Column(name = "withdrawn_at") // 유저 탈퇴 시간 - TODO: 24시간 동안 재가입 막음
     var withdrawnAt: Instant? = null
         protected set
-
 
 
     fun completeSignup(

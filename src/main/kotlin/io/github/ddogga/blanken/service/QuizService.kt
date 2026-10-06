@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 
 
 @Service
-@Transactional(readOnly  =true)
+@Transactional(readOnly = true)
 class QuizService (
     private val quizSetRepository: QuizSetRepository,
     private val quizRepository: QuizRepository,
