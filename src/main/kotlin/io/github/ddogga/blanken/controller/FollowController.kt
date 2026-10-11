@@ -2,6 +2,7 @@ package io.github.ddogga.blanken.controller
 
 import io.github.ddogga.blanken.dto.auth.AuthUser
 import io.github.ddogga.blanken.dto.common.CursorResponse
+import io.github.ddogga.blanken.dto.user.FollowerResponse
 import io.github.ddogga.blanken.dto.user.FollowingResponse
 import io.github.ddogga.blanken.service.FollowService
 import io.swagger.v3.oas.annotations.Operation
@@ -36,11 +37,14 @@ class FollowController(
 
 
     @Operation(summary = "팔로우 해제", description = "팔로우 정보를 삭제 합니다.")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/follow")
     fun unFollow(
+        @Parameter(description = "언팔로우할 대상 유저 ID", example = "2")
         @PathVariable userId: Long,
-        @AuthenticationPrincipal principal: UserPrincipal,
-    ) {}
+        @AuthenticationPrincipal authUser: AuthUser,
+    ) = followService.unFollow(authUser.userId, userId)
+
 
     @Operation(summary = "팔로잉 목록 조회", description = "해당 유저가 팔로우한 유저 목록을 조회합니다.")
     @GetMapping("/followings")
@@ -48,7 +52,7 @@ class FollowController(
         @PathVariable userId: Long,
         @RequestParam(required = false) cursor: Long?,
         @RequestParam(defaultValue = "20") size: Int,
-    ) {}
+    ): CursorResponse<FollowingResponse> = followService.getFollows(userId, cursor, size)
 
     @Operation(summary = "팔로워 목록 조회", description = "해당 유저를 팔로우한 유저 목록을 조회힙니다.")
     @GetMapping("/followers")
@@ -56,6 +60,6 @@ class FollowController(
         @PathVariable userId: Long,
         @RequestParam(required = false) cursor: Long?,
         @RequestParam(defaultValue = "20") size: Int,
-    ) {}
+    ): CursorResponse<FollowerResponse> = followService.getFollowers(userId, cursor, size)
 
 }

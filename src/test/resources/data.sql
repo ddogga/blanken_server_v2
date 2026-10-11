@@ -247,3 +247,119 @@ CROSS JOIN (
 -- 퀴즈셋 블록과 같은 이유로 시드 계정으로 한정한다.
 WHERE u.provider = 'KAKAO' AND u.provider_id = 'seed-test'
 ON CONFLICT (user_id, quiz_set_id) DO NOTHING;
+
+
+-- ──────────────────────────────────────────────────────────────────────────
+-- 팔로우 대상 유저 25명 (`follow1@blanken.io` ~ `follow25@blanken.io`)
+--
+-- 퀴즈셋을 하나도 갖지 않는 **팔로우 대상 전용** 유저들이다.
+-- 위쪽 퀴즈셋 블록은 소유자를 이메일로 찾으므로 여기 유저들과는 엮이지 않는다.
+--
+-- 22번은 PENDING, 23번은 WITHDRAWN 이다 — 나머지는 ACTIVE.
+-- `FollowCustomRepositoryImpl.getFollows` 가 `user.userStatus.eq(ACTIVE)` 로 거르는지
+-- 확인하기 위한 것이다. 둘 다 팔로우는 하지만 **조회 결과에는 나오지 않아야 한다.**
+--
+-- 24~25번은 팔로우하지 않는다 — 쿼리가 "전체 유저"를 긁어오지 않는지 보기 위한 대조군이다.
+--
+-- random() 을 쓰지 않으므로 몇 번을 다시 만들어도 같은 데이터가 나온다.
+-- ──────────────────────────────────────────────────────────────────────────
+WITH names(i, name) AS (
+    VALUES (0, '지민'), (1, '서연'), (2, '하준'), (3, '도윤'), (4, '서준'),
+           (5, '하은'), (6, '예준'), (7, '수아'), (8, '지호'), (9, '윤서')
+)
+INSERT INTO users (email, nickname, provider, provider_id,
+                   user_status, user_role,
+                   terms_agreed_at, marketing_agreed, withdrawn_at,
+                   created_at, updated_at)
+SELECT 'follow' || g.n || '@blanken.io',
+       n.name || g.n,
+       CASE WHEN g.n % 2 = 0 THEN 'KAKAO' ELSE 'NAVER' END,
+       'seed-follow' || g.n,
+       CASE WHEN g.n = 22 THEN 'PENDING'
+            WHEN g.n = 23 THEN 'WITHDRAWN'
+            ELSE 'ACTIVE' END,
+       CASE WHEN g.n = 22 THEN 'GUEST' ELSE 'USER' END,
+       -- 가입을 완료하지 않은 PENDING 만 약관 동의 시각이 없다.
+       CASE WHEN g.n = 22 THEN NULL
+            ELSE now() - (g.n || ' days')::interval END,
+       (g.n % 3 = 0),
+       CASE WHEN g.n = 23 THEN now() - interval '6 hours' ELSE NULL END,
+       now() - (g.n || ' days')::interval,
+       now() - (g.n || ' days')::interval
+FROM generate_series(1, 25) AS g(n)
+JOIN names n ON n.i = g.n % 10
+ON CONFLICT (provider, provider_id) DO NOTHING;
+
+
+-- ──────────────────────────────────────────────────────────────────────────
+-- 팔로우 23건 — 전부 `test@test.io` 가 건 것
+--
+-- 조회 결과는 **21건**이다. 23건 중 PENDING(22번)·WITHDRAWN(23번) 두 명이
+-- `getFollows` 의 `userStatus = ACTIVE` 조건에서 걸러지기 때문이다.
+-- 테이블 행 수(23)와 조회 결과(21)가 다른 것은 **의도된 것**이다.
+--
+-- `getFollows` 는 `follow.id DESC` + `follow.id < cursor` 커서 페이징이다.
+-- 21건이면 size=10 으로 10 / 10 / 1 세 페이지가 나와서 마지막 페이지 처리까지 확인된다.
+-- id 순서가 곧 정렬 순서이므로 `ORDER BY` 로 삽입 순서를 고정한다.
+--
+-- 알림 플래그는 일부만 꺼 둔다 — §4.8 알림 팬아웃이 수신 거부를 걸러내는지 확인용.
+--   notify_quiz_set_created   : 4명 중 1명 꺼짐
+--   notify_quiz_battle_opened : 5명 중 1명 꺼짐
+--
+-- UNIQUE(follower_id, followee_id) 를 이용한 ON CONFLICT DO NOTHING 이라
+-- 여러 번 실행해도 안전하다.
+-- ──────────────────────────────────────────────────────────────────────────
+INSERT INTO follow (follower_id, followee_id,
+                    notify_quiz_set_created, notify_quiz_battle_opened,
+                    created_at, updated_at)
+SELECT f.id,
+       t.id,
+       (t.n % 4 <> 0),
+       (t.n % 5 <> 0),
+       now() - (t.n || ' hours')::interval,
+       now() - (t.n || ' hours')::interval
+FROM users f
+CROSS JOIN (
+    SELECT u.id, g.n
+    FROM generate_series(1, 23) AS g(n)
+    JOIN users u ON u.provider_id = 'seed-follow' || g.n
+) AS t
+-- 팔로워는 좋아요 블록과 같은 소비자 유저다.
+WHERE f.provider = 'KAKAO' AND f.provider_id = 'seed-test'
+ORDER BY t.n
+ON CONFLICT (follower_id, followee_id) DO NOTHING;
+
+
+-- ──────────────────────────────────────────────────────────────────────────
+-- 팔로워 23건 — 전부 `blanken@blanken.io` 를 팔로우한 것 (`getFollowers` 확인용)
+--
+-- 위 팔로우 블록과 **방향이 반대**다. 그쪽은 `test@test.io` 가 23명을 팔로우하고,
+-- 여기는 23명(`follow1` ~ `follow23`)이 `blanken@blanken.io` 를 팔로우한다.
+-- 대상 유저를 `test@test.io` 와 분리해 둔 이유: 한 유저에 팔로잉·팔로워가 섞이면
+-- `follower_id` / `followee_id` 를 뒤바꿔 조회하는 실수가 결과 수로 드러나지 않는다.
+--
+-- 조회 결과는 **21건**이다. PENDING(22번)·WITHDRAWN(23번) 두 명이
+-- `getFollowers` 의 `userStatus = ACTIVE` 조건에서 걸러진다. 24~25번은 대조군이라 팔로우하지 않는다.
+-- size=10 이면 10 / 10 / 1 세 페이지.
+--
+-- UNIQUE(follower_id, followee_id) 를 이용한 ON CONFLICT DO NOTHING 이라
+-- 여러 번 실행해도 안전하다.
+-- ──────────────────────────────────────────────────────────────────────────
+INSERT INTO follow (follower_id, followee_id,
+                    notify_quiz_set_created, notify_quiz_battle_opened,
+                    created_at, updated_at)
+SELECT f.id,
+       t.id,
+       (f.n % 4 <> 0),
+       (f.n % 5 <> 0),
+       now() - (f.n || ' minutes')::interval,
+       now() - (f.n || ' minutes')::interval
+FROM (
+    SELECT u.id, g.n
+    FROM generate_series(1, 23) AS g(n)
+    JOIN users u ON u.provider_id = 'seed-follow' || g.n
+) AS f
+CROSS JOIN users t
+WHERE t.provider = 'KAKAO' AND t.provider_id = 'seed-blanken'
+ORDER BY f.n
+ON CONFLICT (follower_id, followee_id) DO NOTHING;
