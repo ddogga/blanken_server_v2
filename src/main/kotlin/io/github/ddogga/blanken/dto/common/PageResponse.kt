@@ -7,7 +7,7 @@ import org.springframework.data.domain.Page
  * 페이징 응답 래퍼.
  *
  * `Page`(`PageImpl`)를 그대로 직렬화하면 JSON 구조가 Spring Data 내부 구현에 묶여
- * 버전 간 안정성이 보장되지 않는다. 안드로이드 클라이언트가 고정된 형태로 파싱할 수 있도록 직접 감싼다.
+ * 버전 간 안정성이 보장되지 않는다.
  */
 @Schema(description = "페이징 응답")
 data class PageResponse<T>(

@@ -6,9 +6,9 @@ import com.querydsl.core.types.Projections
 import com.querydsl.core.types.dsl.BooleanExpression
 import com.querydsl.core.types.dsl.Expressions
 import com.querydsl.jpa.impl.JPAQueryFactory
-import io.github.ddogga.blanken.domain.QCategory.category
-import io.github.ddogga.blanken.domain.QQuizSet.quizSet
-import io.github.ddogga.blanken.domain.QUser.user
+import io.github.ddogga.blanken.domain.quiz.QCategory.category
+import io.github.ddogga.blanken.domain.quiz.QQuizSet.quizSet
+import io.github.ddogga.blanken.domain.user.QUser.user
 import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
 import io.github.ddogga.blanken.domain.quiz.Visibility
 import io.github.ddogga.blanken.dto.category.CategoryResponse
