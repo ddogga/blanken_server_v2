@@ -39,43 +39,75 @@
 이 전제에서 따라오는 것 (2026-09-29 결정)
 - **서버가 화면을 그리거나 리다이렉트로 흐름을 제어하지 않는다.** 인증도 예외가 아니다. 브라우저 리다이렉트와 세션 쿠키에 기대는 방식(서버 주도 OAuth Authorization Code)은 네이티브 앱에서 성립하지 않으므로, **클라이언트 종류와 무관하게 동작하는 토큰 기반 인증**을 기본으로 둔다. 단 웹 클라이언트가 실제로 들어오면 서버 주도 플로우도 선택지에 남는다 — 어느 쪽이든 **한 가지로 통일**하고 클라이언트별로 갈라지지 않게 한다.
 - **§4.1의 클라이언트 채점이 클라이언트 수만큼 복제된다.** 정답 정규화 규칙(대소문자·공백·유니코드)의 **단일 출처** 유지가 클라이언트가 하나일 때보다 훨씬 중요해진다. 규칙은 문서·상수로 못 박고, 구현이 갈라지면 같은 답이 클라이언트마다 다르게 채점된다.
-- **CORS 설정이 필요해진다.** 네이티브만 있을 때는 불필요하지만 웹 클라이언트가 붙는 순간 필요하다.
+- **CORS 설정이 필요해진다.** 네이티브만 있을 때는 불필요하지만 웹 클라이언트가 붙는 순간 필요하다. → `SecurityConfig.corsConfigurationSource` 에 구현됨 (`app.cors.allowed-origins`).
 
-**전제**: 로그인 없이는 앱 진입이 불가능하다. 모든 API는 인증된 사용자를 전제한다.
+> **현재 구현과 위 원칙의 간극** — 실제 인증은 Spring Security `oauth2Login`(서버 주도 Authorization Code)으로 구현되어 있고, 로그인 성공 시 **프론트 URL(`app.oauth2.redirect.*`)로 리다이렉트**한다(§2.2). 결과물은 JWT라 이후 API 호출은 클라이언트 종류와 무관하지만, **로그인 진입 플로우는 브라우저 리다이렉트에 기대고 있다.** 네이티브 클라이언트 대응 방식은 §9 미결정 사항.
+
+**전제**: 로그인 없이는 앱 진입이 불가능하다. 모든 API는 인증된 사용자를 전제한다. (단 현재 `SecurityConfig` 는 개발 편의상 `anyRequest permitAll` — §4.10 부채 참고)
 
 ---
 
 ## 2. 현재 저장소 상태
 
-M1 진행 중 — 엔티티 계층까지 완료.
+**M1 거의 완료 + M2 일부 착수** (2026-10-12 기준).
+인증(소셜 로그인 + JWT), 회원가입·탈퇴, 퀴즈셋/퀴즈 CRUD·검색, 학습 기록 생성, 좋아요, 팔로우까지 구현됨.
+다음 단계는 **Docker 빌드 + Flyway 마이그레이션 + AWS CI/CD 인프라 구축**이다 (§9).
+
+### 2.1 스택
 
 | 항목 | 값 |
 |---|---|
 | 언어/런타임 | Kotlin 2.3.21, Java 21 toolchain |
 | 프레임워크 | Spring Boot 4.1.0 (`spring-boot-starter-webmvc`, `-data-jpa`) |
-| DB | PostgreSQL (`ddl-auto: update`, `open-in-view: false`) |
-| API 문서 | springdoc-openapi 3.1.0 — `/swagger-ui.html` |
+| DB | PostgreSQL (`ddl-auto: ${DDL_AUTO:update}`, `open-in-view: false`). 검색용 `pg_trgm` 확장 + GIN 인덱스는 `schema.sql` 로 **수동 적용** |
+| 인증 | `spring-boot-starter-security` + `-oauth2-client` (카카오·네이버), JWT는 jjwt 0.12.6 |
+| Redis | `spring-boot-starter-data-redis` — 현재 용도는 **Refresh Token 저장**과 **OAuth2 인가 요청 임시 보관**뿐 (§7 키 목록) |
+| API 문서 | springdoc-openapi 3.1.0 — `/blanken/swagger-ui.html` (`server.servlet.context-path: /blanken`) |
 | 검증 | `spring-boot-starter-validation` — 요청 DTO에 `@Valid` |
 | 쿼리 빌더 | QueryDSL (`querydsl-jpa` + `querydsl-apt`, **`jakarta` 분류자 필수**). 버전은 부트 BOM이 관리(5.1.0)하므로 명시하지 않는다. Q클래스 생성에 `kotlin("kapt")` 플러그인 필요 |
-| 비밀번호 해싱 | `spring-security-crypto`의 BCrypt (**starter-security 아님** — 필터체인 미적용) |
-| 테스트 | JUnit5 + MockK 1.14.11 + springmockk 5.0.1 (둘 다 부트 BOM 미관리 — 버전 직접 명시) |
+| 테스트 | JUnit5 + MockK 1.14.11 + springmockk 5.0.1 (둘 다 부트 BOM 미관리 — 버전 직접 명시) + **Testcontainers 2.0.5** (PostgreSQL) |
+| 시크릿 | 루트의 `application-secret.yaml`(gitignore) 을 `spring.config.import: optional:` 로 읽는다. 템플릿은 `application-secret.yaml.example`. 키 이름이 환경변수와 같아서 운영에서는 OS 환경변수만으로 동작한다 |
 | 패키지 루트 | `io.github.ddogga.blanken` |
 
-기존 코드
-- `config/` — `OpenApiConfig`, `JpaAuditingConfig`, `PasswordEncoderConfig`, `QuerydslConfig`(`JPAQueryFactory` 빈)
-- `domain/` — `BaseTimeEntity`, `User`, `QuizSet`, `Quiz`, `Category`, `QuizSetLike`, `StudyHistory`, `StudyHistoryDetail`, `Visibility`
-- `repository/` — `UserRepository`
-- `service/` — `UserService`
-- `controller/` — `UserController`, `TestController`
-- `dto/user/`, `dto/common/PageResponse`, `exception/` (`ErrorCode` + `BusinessException` + 도메인 예외 + `GlobalExceptionHandler`)
-- 테스트 — `UserServiceTest`(9), `UserControllerTest`(9). User CRUD 기준선이므로 이후 도메인은 이 구조를 따른다.
+### 2.2 코드 구성
 
 **계층 구조**: `controller` → `service` → `repository` → `domain`. 타입별 패키지 분리.
 엔티티는 컨트롤러 밖으로 나가지 않는다 — 요청·응답은 항상 `dto`.
 
-**아직 없는 것** (필요해지면 추가): Spring Security, Redis(`spring-boot-starter-data-redis`), WebSocket, 메시지큐 클라이언트, 마이그레이션 도구(Flyway 등), Docker/K8s 매니페스트.
+- `config/` — `SecurityConfig`, `OpenApiConfig`, `JpaAuditingConfig`, `QuerydslConfig`(`JPAQueryFactory` 빈), `PasswordEncoderConfig`(소셜 전용 전환 후 **미사용**)
+- `config/auth/` — 인증 일체
+  - `service/CustomOAuth2UserService` — 제공자 응답 → `(provider, provider_id)` 로 조회, 없으면 GUEST/PENDING 으로 생성, WITHDRAWN 이면 거부
+  - `handler/Oauth2LoginSuccessHandler` — Refresh Token을 **HttpOnly 쿠키(`Path=/auth`)** 로 발급 후 상태별로 `app.oauth2.redirect.{signup|success|failure}` 로 리다이렉트
+  - `repository/HttpCookieOAuth2AuthorizationRequestRepository` + `jwt/Oauth2AuthorizationRequestStore` — 인가 요청을 세션 대신 Redis에(쿠키에는 UUID 키만, TTL 3분, `GETDEL`)
+  - `jwt/` — `JwtTokenProvider`, `JwtAuthenticationFilter`(빈 등록 안 함 — 서블릿 필터 이중 등록 방지), `AuthTokenService`(재발급), `RefreshTokenStore`(Redis, `GETDEL` 로 Rotation), EntryPoint(401)/AccessDeniedHandler(403)
+  - `AuthErrorCode` — 필터 단계 인증 실패 코드 (§4.10)
+- `domain/` — 하위 패키지로 나뉜다: `user/`(`User`, `Follow`, `UserRole`, `UserStatus`), `quiz/`(`QuizSet`, `Quiz`, `Category`, `QuizSetLike`, `Visibility`, `QuizSetOrderEnum`), `history/`(`StudyHistory`, `StudyHistoryDetail`), 루트에 `BaseTimeEntity`, `OauthProvider`(제공자별 응답 파싱 enum)
+- `repository/` — 도메인별 JPA 리포지토리 + `querydsl/` 커스텀 구현(`QuizSet`·`QuizSetLike`·`Follow`)
+- `service/` — `UserService`, `QuizSetService`, `QuizService`, `QuizSetLikeService`, `StudyHistoryService`, `StudyHistoryDetailService`, `FollowService`
+- `controller/` — `AuthController`(`/auth/refresh`, `/auth/logout`), `UserController`, `QuizSetController`, `QuizController`, `StudyHistoryController`, `FollowController`
+- `dto/` — 도메인별 하위 패키지 + `common/`(`PageResponse`, `CursorResponse`)
+- `exception/` — `ErrorCode` + `BusinessException` + 도메인 예외 + `GlobalExceptionHandler`
 
-**쿼리 빌더로 Kotlin JDSL이 아니라 QueryDSL을 쓴다** (2026-09-23 결정).
+**회원 모델** — 소셜 로그인/가입만 허용한다(2026-10-04). 비밀번호 컬럼이 없고, 회원은 **`(provider, provider_id)` UNIQUE** 로 식별한다. 이메일은 제공자가 다르면 중복을 허용한다.
+상태 전이: 소셜 인증 직후 `GUEST/PENDING` → `POST /api/users/signup`(약관·닉네임) → `USER/ACTIVE`. 탈퇴는 소프트 삭제(`WITHDRAWN` + `withdrawn_at`).
+
+**인증 흐름 요약** — 상세 시퀀스는 `README.md`.
+1. `GET /oauth2/authorization/{provider}` → 제공자 동의 → 콜백 → Refresh 쿠키 발급 + 프론트로 리다이렉트
+2. 프론트가 `POST /auth/refresh` 로 첫 Access Token을 받는다. 만료(`TOKEN_EXPIRED`) 시에도 같은 API로 재발급 (Rotation)
+3. 이후 `Authorization: Bearer {accessToken}`. 필터는 DB 조회 없이 클레임(`sub`, `role`)만으로 `AuthUser(userId, userRole)` 를 만든다 → 컨트롤러에서 `@AuthenticationPrincipal authUser: AuthUser`
+
+### 2.3 개발 데이터 · 테스트 리소스
+
+- `src/main/resources/data.sql` — 개발용 시드. **여러 번 실행해도 안전**하게 `ON CONFLICT DO NOTHING` / `WHERE NOT EXISTS` 로 작성한다. 시드 유저는 `provider_id` 가 `seed-` 로 시작한다.
+  - 유저 6명(상태별) + 팔로우용 유저 25명(`follow1~25@blanken.io`, 22번 PENDING·23번 WITHDRAWN·24~25번 대조군), 카테고리 10, 퀴즈셋 100
+  - `test@test.io` — 좋아요 30건, **23명 팔로잉**(ACTIVE 조회 결과 21건)
+  - `blanken@blanken.io` — **23명의 팔로워**(ACTIVE 조회 결과 21건)
+- `src/test/resources/data.sql` — **main 과 동일한 내용을 유지한다.** Repository 테스트가 `@Sql("/data.sql")` 로 매 테스트 전에 실행하므로 멱등성이 깨지면 테스트가 깨진다.
+- `schema.sql`(main/test) — `pg_trgm` 확장 + `idx_quiz_set_title_trgm`. Hibernate가 만들지 못하는 부분만 담는다. Flyway 도입 시 마이그레이션으로 옮길 대상.
+
+**아직 없는 것** (필요해지면 추가): WebSocket, 메시지큐 클라이언트, 마이그레이션 도구(Flyway), Dockerfile·docker-compose, K8s 매니페스트, CI/CD 파이프라인, 프로파일 분리(dev/prod).
+
+### 2.4 쿼리 빌더 — Kotlin JDSL이 아니라 QueryDSL을 쓴다 (2026-09-23 결정)
 
 Kotlin JDSL을 먼저 붙여 봤지만 **부트 4.1에서 아예 동작하지 않는다.** 실제로 띄워서 확인한 결과:
 
@@ -92,8 +124,8 @@ QueryDSL은 `EntityManager.createQuery`라는 **공개 API만** 쓴다. 그래�
 
 > 쿼리 빌더는 **동적 조건자**(키워드·카테고리 등 선택적 필터 조합)를 위한 것이지, 컬렉션 fetch join + 페이징의 메모리 문제(`HHH90003004 ... applying in memory`)를 풀어주지 않는다. 그건 빌더가 아니라 쿼리 모양(id만 페이징 → 그 페이지만 fetch join)으로 해결한다.
 
-> **주의**: `ddl-auto: update`는 M1 한정. 컬럼 삭제·타입 변경을 반영하지 못하고 운영에 쓸 수 없다. 스키마가 굳으면 Flyway로 이전할 것.
-> Redis 의존성이 아직 없어 **진행 상태·이어풀기는 구현 불가** — 학습 풀이 API 착수 전에 `spring-boot-starter-data-redis`를 추가해야 한다 (4.3이 Redis 전용으로 결정되면서 M1 필수 의존성이 되었다).
+> **주의**: `ddl-auto: update`는 M1 한정. 컬럼 삭제·타입 변경을 반영하지 못하고 운영에 쓸 수 없다. **인프라 구축과 함께 Flyway로 이전한다** (§9). 이전 후에는 `validate` 로 바꿔 엔티티와 스키마 불일치를 기동 시점에 잡는다.
+> Redis 의존성은 들어왔지만 **진행 상태·이어풀기(§4.3·4.4)는 아직 미구현**이다. 학습 기록은 현재 완주 결과를 `POST /api/study-histories` 로 바로 받는 형태만 있다.
 
 ---
 
@@ -101,8 +133,8 @@ QueryDSL은 `EntityManager.createQuery`라는 **공개 API만** 쓴다. 그래�
 
 - **모듈러 모놀리스 + 알림 서비스만 별도 프로세스.** MSA 전면 분해는 이 규모에 오버스펙. 알림은 팬아웃 버스트 특성과 결합도가 본체와 명확히 달라서만 분리하고, 메시지큐로 느슨하게 결합한다. K8s에서 각각 Deployment로 두어 독립 스케일링.
 - **저장소 역할 분담**
-  - **RDBMS** — 정합성 기준(source of truth): 유저, 퀴즈셋/퀴즈, 팔로우, 좋아요, 진행 상태, 학습 기록, 대결 결과
-  - **Redis** — 가속 계층·휘발성 상태: 세션/토큰, 좋아요 카운터, 인기 랭킹(ZSET), 학습 진행 세션(TTL), 대결 방 상태·선착순 판정·라이브 스코어보드
+  - **RDBMS** — 정합성 기준(source of truth): 유저, 퀴즈셋/퀴즈, 팔로우, 좋아요, 학습 기록, 대결 결과 (진행 상태는 §4.3에 따라 Redis 전용)
+  - **Redis** — 가속 계층·휘발성 상태: Refresh Token·OAuth2 인가 요청(구현됨), 좋아요 카운터, 인기 랭킹(ZSET), 학습 진행 세션(TTL), 대결 방 상태·선착순 판정·라이브 스코어보드
   - **메시지큐** — 퀴즈셋 생성 알림 팬아웃, 대결 종료 후처리, (도입 시) RDB↔ES 동기화
 - **알림 채널 이원화**: 앱이 켜져 있을 때의 실시간 UI 갱신(대결 스코어보드 등)은 **WebSocket**, 백그라운드/종료 상태에도 도착해야 하는 푸시는 **FCM**(웹은 FCM Web Push). 모바일에서 백그라운드 소켓은 유지되지 않고, 웹도 탭이 닫히면 마찬가지다.
 
@@ -146,6 +178,12 @@ QueryDSL은 `EntityManager.createQuery`라는 **공개 API만** 쓴다. 그래�
 - cache miss 시 DB에서 현재 카운트를 읽어 Redis에 세팅(lazy loading). 주기적 배치 flush는 **증분 키 분리 등으로 멱등하게** 설계해 중복 증가를 막는다.
 - 클라이언트는 낙관적 UI(즉시 반영 후 실패 시 롤백) → 서버는 **멱등**해야 한다. 더블탭·재시도가 와도 결과는 좋아요 1개로 수렴.
 
+**현재 구현 (Redis 카운터 도입 전 단계)** — 카운트는 아직 Redis가 아니라 **DB 원자 UPDATE**다.
+- 중복: `quiz_set_like` UNIQUE + `saveAndFlush` → `DataIntegrityViolationException` 을 `QuizSetLikeDuplicationException`(Q004)으로 변환
+- 카운트: 더티 체킹 대신 `QuizSetRepository.addLikeCount` / `cancelLikeCount` 의 `like_count = like_count ± 1` 단일 UPDATE. 취소는 `like_count > 0` 조건 + 실제 삭제된 행이 있을 때만 감소
+- `QuizSetLikeConcurrentTest` 가 동시 요청에서 카운트가 맞는지 검증한다.
+- 위 Redis `INCR` + 멱등 flush 설계는 쓰기 부하가 문제될 때의 **고도화 단계**로 남아 있다.
+
 ### 4.6 검색
 - 퀴즈셋 이름 + 카테고리 복합 검색. **퀴즈셋당 카테고리는 1개**지만(§4.7) 사용자는 여러 개를 골라 거를 수 있다 — `WHERE quiz_set.category_id IN (...)`. 다대일이 되면서 조인 없이 `quiz_set` 한 테이블에서 끝나고, 퀴즈셋이 여러 행으로 불어나지 않아 `DISTINCT` 도 필요 없다.
 - **서버 필터링(재쿼리) 채택.** 필터 토글 시 클라가 보유한 결과를 거르지 않고 서버에 재요청한다. 페이지네이션 위에서의 클라 필터링은 로드된 부분집합만 걸러 부정확하기 때문.
@@ -165,6 +203,9 @@ QueryDSL은 `EntityManager.createQuery`라는 **공개 API만** 쓴다. 그래�
   - **"엔티티는 이 규칙을 강제하지 않는다"(2026-09-02 결정)는 뒤집혔다.** 그때 못 막은 이유는 카테고리가 `addCategory` 로 **생성 후에** 붙는 구조여서 생성자로는 손댈 수 없었기 때문인데, 다대일이 되면서 카테고리가 생성자 논-널 파라미터로 들어온다. 팩터리나 `private` 생성자 없이 강제되므로 **테스트에서 `id` 를 지정하는 길도 그대로 남는다.** 당시 규칙을 포기하게 만든 거래 자체가 사라졌다.
 
 ### 4.8 팔로우 + 알림 팬아웃
+- **팔로우 자체는 구현됨** — `follow(follower_id, followee_id)` UNIQUE, 자기 자신 팔로우는 엔티티 `init` 에서 거부. 팔로우마다 알림 수신 플래그(`notify_quiz_set_created`, `notify_quiz_battle_opened`)를 둬서 팬아웃 시 수신 거부를 거른다.
+- 팔로잉/팔로워 목록은 **ACTIVE 유저만** 노출하고 **커서 페이징**(§4.10)이다.
+- 알림 팬아웃(아래)은 미구현.
 - 생성 API는 `QuizSetCreated` 이벤트만 발행하고 **즉시 응답**. 알림 서비스 컨슈머가 팔로워 목록을 조회해 알림 생성/전송, 실패 시 재시도(DLQ).
 - 절대 생성 API의 트랜잭션 안에서 팔로워 전체에 동기 전송하지 않는다.
 
@@ -180,19 +221,27 @@ QueryDSL은 `EntityManager.createQuery`라는 **공개 API만** 쓴다. 그래�
 - **응답 상태**: 생성 `201` + `Location`, 본문 없는 성공 `204`, 조회·수정 `200`.
 - **에러 응답**은 `ErrorResponse(code, message, fieldErrors?)` 하나로 통일. `code`는 클라이언트 분기용, `message`는 사람이 읽는 값.
   상태·코드·메시지의 단일 출처는 **`exception/ErrorCode` enum**이다. 응답은 직접 생성하지 말고 `ErrorResponse.of(errorCode, fieldErrors?)`로 만든다.
-  **코드 체계**: `앞자리 알파벳(도메인) + 3자리 순번`. `C`=Common(횡단), `U`=User, `A`=Auth. 순번은 도메인별 `001`부터, **`999`는 서버 오류·기타로 예약**.
+  **코드 체계**: `앞자리 알파벳(도메인) + 3자리 순번`. `C`=Common(횡단), `U`=User, `Q`=Quiz/QuizSet, `G`=Category, `A`=Auth. 순번은 도메인별 `001`부터, **`999`는 서버 오류·기타로 예약**.
 
-  | enum | code | status |
-  |---|---|---|
-  | `VALIDATION_FAILED` | `C001` | 400 |
-  | `DATA_INTEGRITY_VIOLATION` | `C002` | 409 |
-  | `INTERNAL_ERROR` | `C999` | 500 (예약 — 아직 핸들러 없음) |
-  | `USER_NOT_FOUND` | `U001` | 404 |
-  | `DUPLICATE_EMAIL` | `U002` | 409 |
-  | `CATEGORY_NOT_FOUND` | `G001` | 404 |
-  | `INVALID_PASSWORD` | `A001` | 400 |
+  | enum | code | status | 비고 |
+  |---|---|---|---|
+  | `VALIDATION_FAILED` | `C001` | 400 | |
+  | `DATA_INTEGRITY_VIOLATION` | `C002` | 409 | |
+  | `INTERNAL_ERROR` | `C999` | 500 | 예약 — 아직 핸들러 없음 |
+  | `USER_NOT_FOUND` | `U001` | 404 | |
+  | `DUPLICATE_EMAIL` | `U002` | 409 | 소셜 전용 전환 후 **미사용** (이메일 UNIQUE 없음) |
+  | `INVALID_OAUTH2_USER_INFO` | `U003` | 400 | 제공자 응답 파싱 실패 |
+  | `QUIZ_SET_NOT_FOUND` | `Q001` | 404 | |
+  | `QUIZ_NOT_FOUND` | `Q002` | 404 | |
+  | `QUIZ_SET_TITLE_DUPLICATION` | `Q003` | 409 | 같은 소유자 내 제목 중복 |
+  | `QUIZ_SET_LIKE_DUPLICATION` | `Q004` | 409 | |
+  | `QUIZ_SET_ACCESS_DENIED` | `Q005` | 403 | |
+  | `CATEGORY_NOT_FOUND` | `G001` | 404 | |
+  | `INVALID_PASSWORD` | `A001` | 400 | 소셜 전용 전환 후 **미사용** |
 
   `G` = cateGory. `C` 는 Common 이 선점해 알파벳이 겹쳐서다.
+
+- **필터 단계 인증 실패는 `config/auth/AuthErrorCode` 가 따로 담당한다.** 컨트롤러에 도달하기 전이라 `GlobalExceptionHandler` 를 거치지 않고, `writeAuthError` 가 `{"code","message"}` 를 직접 쓴다. `code` 는 enum 이름 그대로다(`UNAUTHORIZED` / `TOKEN_EXPIRED` / `INVALID_TOKEN` / `REFRESH_TOKEN_INVALID` / `ACCESS_DENIED`) — 위 `알파벳+순번` 체계와 **형식이 다르다.** 프론트 분기: `TOKEN_EXPIRED` → `/auth/refresh` 후 재시도, 나머지 401 → 재로그인.
 
 - **도메인 예외는 `BusinessException(errorCode, detail?)`을 상속**한다. `GlobalExceptionHandler`는 이 타입 하나만 잡으므로 예외를 추가해도 핸들러를 건드릴 일이 없다.
   **클라이언트에는 `ErrorCode.message`(표준 문구)만 나간다.** `detail`(`(id=1)`, `(email=...)` 등 진단용 맥락)은 예외의 `message`에 담겨 **로그로만** 남는다 — 내부 식별자가 응답으로 새지 않게 하기 위해서다.
@@ -200,10 +249,19 @@ QueryDSL은 `EntityManager.createQuery`라는 **공개 API만** 쓴다. 그래�
   Bean Validation 은 역직렬화가 **성공한 뒤에** 돌기 때문에, Kotlin 논-널 필드가 비면 `@Valid` 가 돌기도 전에 Jackson 이 먼저 실패한다.
   이 핸들러가 없으면 스프링 기본 에러 바디(`timestamp`/`status`/`error`/`path`)가 나가 **클라이언트가 에러 형식 두 개를 파싱**해야 한다. `VALIDATION_FAILED`(C001)로 통일하되, 파서 메시지에는 내부 타입 정보가 섞여 있어 `fieldErrors` 없이 표준 메시지만 내보낸다.
 - **페이징 응답은 `PageResponse<T>`로 감싼다.** `Page`(`PageImpl`)를 그대로 직렬화하면 JSON 구조가 Spring Data 내부 구현에 묶여 버전 간 안정성이 깨진다.
-- **멱등하지 않은 변경은 PUT이 아니라 POST.** (예: 비밀번호 변경은 현재 비밀번호 대조가 있어 재요청 시 실패 → `POST /{id}/password`)
+- **무한 스크롤 목록은 커서 페이징 `CursorResponse<T>(content, nextCursor, hasNext)`** — 팔로우 목록에서 도입. `id DESC` 정렬 + `id < cursor`, **`size + 1` 개를 조회해 초과분으로 `hasNext` 를 판단**하고 `size` 개만 돌려준다. `nextCursor` 는 마지막 항목의 id(없으면 `null`).
+- **멱등하지 않은 변경은 PUT이 아니라 POST.**
 - **부분 수정은 PATCH.**
-- **비밀번호는 어떤 응답에도 담지 않는다.** 해시라도 마찬가지.
-- **인증 미도입 상태의 부채**: `{id}` 경로만으로 대상을 지정하므로 현재 누구나 남의 계정을 수정·삭제할 수 있다. 인증 도입 시 소유권 검사를 넣거나 `/api/users/me` 형태로 바꾸고, 유저 전체 목록 조회는 제한/제거한다. (`UserController` KDoc에 명시해 둠)
+- **인증 주체는 경로·본문이 아니라 토큰에서 꺼낸다** — `@AuthenticationPrincipal authUser: AuthUser`. `UserController`(닉네임 변경·탈퇴·가입 완료), `FollowController` 는 이 방식이다.
+
+**남아 있는 인증 부채** (인증 도입 후 아직 정리 안 됨)
+- `SecurityConfig` 가 `anyRequest permitAll` 이다. `hasRole("USER")` 는 주석 처리돼 있고 프로파일 분리 후 켜기로 한 TODO 상태.
+- 아래는 여전히 **요청이 지정한 id 를 신뢰**한다 — 토큰의 `userId` 로 바꾸고 소유권을 검사해야 한다.
+  - 좋아요: `PUT/DELETE /api/quiz-sets/{quizSetId}/likes/{userId}`, `GET /api/quiz-sets/likes/{userId}`
+  - 퀴즈셋 생성: `QuizSetCreateRequest.ownerId`
+  - 학습 기록 생성: `StudyHistoryRequest.userId`
+- `GET /api/users`(전체 목록)이 열려 있다 — 제한/제거 대상.
+- `UserController.signup` 이 `ErrorCode` 를 거치지 않고 `ErrorResponse("SIGNUP_ALREADY_COMPLETED", ...)` 처럼 **임의 코드 문자열을 직접 만든다** — 위 단일 출처 규약에서 벗어나 있다.
 
 ---
 
@@ -215,7 +273,12 @@ QueryDSL은 `EntityManager.createQuery`라는 **공개 API만** 쓴다. 그래�
 - **JUnit5 + MockK**. 슬라이스 테스트는 `@WebMvcTest`(Controller), 필요 시 `@DataJpaTest`(Repository).
 - **Kotest 전환 가능성을 염두에 둔다.** 특정 러너에 강하게 결합된 구조는 피하고, given-when-then의 논리적 구분을 주석이나 구조로 드러내 전환 시 마찰을 줄인다.
 
-- `@WebMvcTest`에서 빈 교체는 **springmockk의 `@MockkBean`**을 쓴다 (부트 기본 `@MockitoBean`은 Mockito 전용). 5.0.1 + 부트 4.1 조합은 `UserControllerTest`로 동작 확인 완료.
+- `@WebMvcTest`에서 빈 교체는 **springmockk의 `@MockkBean`**을 쓴다 (부트 기본 `@MockitoBean`은 Mockito 전용). 5.0.1 + 부트 4.1 조합 동작 확인 완료.
+- `@WebMvcTest` 는 실제 `SecurityConfig` 대신 **`config/TestSecurityConfig`**(CSRF off + `permitAll`)를 `@Import` 한다. 인증 주체가 필요한 테스트는 `spring-security-test` 로 주입한다.
+- **Repository 테스트와 동시성 테스트는 Testcontainers 로 실제 PostgreSQL 을 띄운다** (`support/PostgresTestContainerConfig`, `postgres:17-alpine`, `@ServiceConnection`). `ilike`·`pg_trgm` 같은 PostgreSQL 전용 문법은 H2로 검증할 수 없기 때문이다.
+  - **Docker 데몬이 꺼져 있으면** `Could not find a valid Docker environment` → `NoClassDefFoundError: Could not initialize class PostgresTestContainerConfig` 로 해당 테스트들이 줄줄이 실패한다. 코드 문제가 아니라 Docker Desktop을 켜면 된다.
+  - pgAdmin 접속용으로 호스트 포트를 **`55432` 로 고정**해 두었다. 포트가 점유돼 있으면 기동이 실패하고, 테스트 병렬 실행이 불가하다.
+  - 테스트 데이터는 `@Sql("/schema.sql", BEFORE_TEST_CLASS)` + `@Sql("/data.sql")`(§2.3), 동시성 테스트는 `@Sql("/user.sql")`.
 
 > **주의**: 부트 4에서 테스트 애너테이션 패키지가 옮겨졌다. `@WebMvcTest`는 `org.springframework.boot.test.autoconfigure.web.servlet`이 아니라 **`org.springframework.boot.webmvc.test.autoconfigure`**다. 부트 3 기준 예제를 그대로 붙이면 `Unresolved reference`가 난다.
 
@@ -288,34 +351,43 @@ QueryDSL은 `EntityManager.createQuery`라는 **공개 API만** 쓴다. 그래�
 
 > **Redis 싱글스레드는 "명령 하나의 원자성"만 보장한다. 여러 명령에 걸친 논리적 원자성은 UNIQUE 제약·SETNX·Lua 스크립트로 별도 설계한다.**
 
-| 지점 | 문제 | 해법 |
-|---|---|---|
-| 이메일 중복 가입 | check-then-act 경쟁 | `users.email` **UNIQUE 제약**. `existsByEmail` 선검사는 메시지 품질용일 뿐 보장이 아니다 — `UserService.create`는 `saveAndFlush`로 즉시 INSERT 후 `DataIntegrityViolationException`을 `DuplicateEmailException`으로 변환한다 (`save`만 하면 flush가 커밋 시점으로 밀려 catch 밖에서 터진다) |
-| 좋아요 중복 | check-then-act 경쟁 | `(user_id, quizset_id)` **UNIQUE 제약** — DB가 원자적으로 거부 |
-| 좋아요 카운트 | 갱신 유실 | Redis 원자 `INCR` + 멱등 flush |
-| 대결 선착순 | 최초 정답자 1인 확정 | `winner:{roomId}:{questionId}` 에 `SETNX` — first-writer-wins |
-| 대결 방 정원 | 정원 초과 동시 입장 (재고 문제와 동형) | Redis **Lua** 원자 check-and-increment |
+| 지점 | 문제 | 해법 | 상태 |
+|---|---|---|---|
+| 소셜 계정 중복 가입 | 같은 제공자 계정으로 동시 가입 | `users (provider, provider_id)` **UNIQUE 제약**. (이메일 UNIQUE는 소셜 전용 전환으로 제거 — 제공자가 다르면 같은 이메일 허용) | ✅ 제약 |
+| 좋아요 중복 | check-then-act 경쟁 | `(user_id, quiz_set_id)` **UNIQUE** + `saveAndFlush` 로 즉시 INSERT → 위반을 Q004 로 변환 (`save` 만 하면 flush가 커밋 시점으로 밀려 catch 밖에서 터진다) | ✅ |
+| 좋아요 카운트 | 갱신 유실 | 현재: DB 단일 UPDATE `like_count = like_count ± 1` (§4.5). 고도화: Redis 원자 `INCR` + 멱등 flush | ✅ / 예정 |
+| 팔로우 중복 | check-then-act 경쟁 | `(follower_id, followee_id)` **UNIQUE** | ✅ 제약 |
+| Refresh Token 재사용 | 같은 토큰으로 동시 재발급 | Redis **`GETDEL`** — 한 요청만 성공 (Rotation) | ✅ |
+| OAuth2 콜백 중복 | 같은 인가 요청 콜백 2회 | Redis **`GETDEL`** — 인가 요청 일회용 | ✅ |
+| 대결 선착순 | 최초 정답자 1인 확정 | `winner:{roomId}:{questionId}` 에 `SETNX` — first-writer-wins | 예정 |
+| 대결 방 정원 | 정원 초과 동시 입장 (재고 문제와 동형) | Redis **Lua** 원자 check-and-increment | 예정 |
 
 ---
 
-## 7. 데이터 모델 초안
+## 7. 데이터 모델
 
 **RDBMS**
-M1 엔티티는 `io.github.ddogga.blanken.domain` 패키지에 **구현 완료**.
+엔티티는 `io.github.ddogga.blanken.domain` 하위 패키지(`user/`, `quiz/`, `history/`)에 **구현 완료**. ERD는 `README.md`.
 
 ```
-users                 (id, email, password, nickname, created_at, updated_at)
+users                 (id, email, nickname, provider, provider_id, user_status, user_role,
+                       terms_agreed_at, marketing_agreed, withdrawn_at, created_at, updated_at)
+                                                          -- UNIQUE(provider, provider_id), 비밀번호 컬럼 없음
 quiz_set              (id, owner_id, category_id, title, description, visibility, like_count, quiz_count, created_at, updated_at)
 category              (id, name)                          -- name UNIQUE
-quiz                  (id, quiz_set_id, sentence, answer_word, hint)
+quiz                  (id, quiz_set_id, sentence, answer_word, hint, created_at, updated_at)
+                                                          -- sentence 는 빈칸 `{{}}` 이 정확히 하나 (엔티티 init 검증)
 quiz_set_like         (id, user_id, quiz_set_id, created_at, updated_at)  -- UNIQUE(user_id, quiz_set_id)
 study_history         (id, user_id, quiz_set_id, score, total_count, correct_count, solved_at)  -- append-only
-study_history_detail  (id, history_id, quiz_id, gave_up)
+study_history_detail  (id, history_id, quiz_id, gave_up)  -- UNIQUE(quiz_id, history_id)
+follow                (id, follower_id, followee_id, notify_quiz_set_created, notify_quiz_battle_opened,
+                       created_at, updated_at)            -- UNIQUE(follower_id, followee_id)
 
 -- 이후 마일스톤
-follow                (follower_id, followee_id)
 battle_result / battle_result_player
 ```
+
+`user_status` = `PENDING` / `ACTIVE` / `WITHDRAWN`, `user_role` = `GUEST` / `USER` / `ADMIN` (§2.2 상태 전이).
 
 **테이블·컬럼 명명 주의**
 - `user`, `like`는 PostgreSQL 예약어 → `users`, `quiz_set_like`로 사용한다.
@@ -324,13 +396,17 @@ battle_result / battle_result_player
 **공통 규약**
 - `BaseTimeEntity`(`@MappedSuperclass`) — `created_at` / `updated_at`을 Spring Data JPA Auditing으로 채운다. `@EnableJpaAuditing`은 `config/JpaAuditingConfig.kt`.
 - 모든 `@ManyToOne`은 **`FetchType.LAZY` 명시**. 기본값 EAGER는 N+1의 주원인.
-- `visibility`는 `@Enumerated(EnumType.STRING)` — ordinal은 enum 순서가 바뀌면 데이터가 깨진다.
+- enum 컬럼(`visibility`, `provider`, `user_status`, `user_role`)은 `@Enumerated(EnumType.STRING)` — ordinal은 enum 순서가 바뀌면 데이터가 깨진다.
 - 컬렉션은 내부 `MutableList` + 읽기 전용 `List` 노출 + `addXxx()` 로 양방향 연관 세팅.
-- `quiz_set.like_count`는 `protected set` — 정합성 기준은 DB지만 평상시 증감은 Redis이고 이 컬럼은 배치 flush로만 갱신된다.
+- `quiz_set.like_count`는 `protected set` — 엔티티 메서드로는 바꾸지 않는다. 현재는 리포지토리의 원자 UPDATE 쿼리로만 증감하고(§4.5), Redis 카운터 도입 후에는 배치 flush로만 갱신된다.
 
 **Redis 키**
 ```
-session:{token}
+-- 구현됨
+refresh_token:{jti}                      (String = userId, TTL 14d)  -- Rotation, GETDEL
+oauth2_auth_request:{uuid}               (String = 직렬화된 인가 요청, TTL 3m)  -- GETDEL
+
+-- 예정
 like:count:{quizSetId}
 ranking:quizset                          (ZSET)
 study:session:{userId}:{quizSetId}       (Hash, TTL 24h)  -- 진행 상태 = 이어풀기 세션
@@ -348,7 +424,11 @@ battle:room:{roomId}:count
 ## 8. 마일스톤
 
 1. **M1 — 기반**: 인증 · Quiz Set CRUD · 학습 풀이(클라 채점·재시도/포기·오답 재풀이) · 히스토리 2테이블
+   - ✅ 소셜 로그인 + JWT(Refresh Rotation) · 가입 완료/탈퇴 · 퀴즈셋/퀴즈 CRUD · 학습 기록 생성
+   - ⬜ 학습 풀이 세션(진행 상태 Redis, §4.3) · 오답 재풀이 · 인가 규칙 활성화와 id 신뢰 부채 정리(§4.10)
 2. **M2 — 소셜**: 좋아요(Redis 카운터·UNIQUE·DB 정합성) · 검색(서버 필터링·좋아요 병합) · 팔로우 · 알림(MQ + 알림 서비스 + FCM)
+   - ✅ 좋아요(DB 원자 UPDATE 단계) · 검색(키워드+카테고리, 최신/인기순, `pg_trgm`) · 팔로우/언팔로우 · 팔로잉/팔로워 커서 조회
+   - ⬜ 좋아요 Redis 카운터 · 검색 결과 isLiked 병합 · 알림 팬아웃
 3. **M3 — 실시간 대결**: WebSocket · 선착순(SETNX) · 방 정원(Lua) · 스코어보드 · 종료 후처리
 4. **M4 — 고도화·운영**: 이어풀기(Redis TTL) · 검색 ES/Nori · Docker · Kubernetes · AWS
 
@@ -360,7 +440,18 @@ battle:room:{roomId}:count
 
 구현에 착수하기 전에 확인이 필요한 것들. 결정되면 이 문서를 갱신할 것.
 
-- **인증 방식** — JWT vs Redis 세션. M1 첫 작업이고 이후 모든 API와 WebSocket 핸드셰이크 인증에 영향. Spring Security 의존성이 아직 없다.
+### 9.1 다음 작업 — 인프라 (2026-10-12 착수 예정)
+Docker 이미지 빌드 → Flyway 로 DB 스키마 관리 → AWS 에 CI/CD 배포. 우선 EC2 등 AWS 리소스를 만들어 두는 단계부터 시작한다.
+구성 서비스·배포 방식은 **아직 결정 전**이다. 결정되면 §2·§3에 반영할 것. 착수 시 함께 정해야 할 것:
+- Flyway 전환 시 기준 스키마(V1) 작성 방법, `schema.sql`(pg_trgm·GIN 인덱스)의 마이그레이션 편입, `ddl-auto` → `validate`
+- `data.sql` 시드의 운영 제외 (프로파일 분리 — `SecurityConfig` 의 `permitAll` TODO 와 같은 작업)
+- 시크릿 주입 방식 (현재 `application-secret.yaml` / 환경변수 → 운영 환경의 저장소)
+- OAuth2 `redirect-uri` 와 `app.oauth2.redirect.*`, `app.cors.allowed-origins` 의 운영 도메인
+
+### 9.2 도메인·기능
+- ~~**인증 방식** — JWT vs Redis 세션~~ → **해소**: JWT Access(30m) + Redis 저장 Refresh(14d, Rotation). WebSocket 핸드셰이크 인증도 이 Access Token 기준으로 설계한다.
+- **네이티브 클라이언트 로그인 진입** — 현재는 서버 주도 `oauth2Login` + 프론트 URL 리다이렉트 + Refresh 쿠키(§1 간극). 안드로이드에서 그대로 쓸지(커스텀 탭 + 딥링크 리다이렉트), 클라이언트 SDK로 받은 제공자 토큰을 서버가 검증·교환하는 방식을 추가할지. §1의 "한 가지로 통일" 원칙과 함께 판단할 것.
+- **탈퇴 후 재가입 쿨타임** — `User.withdrawnAt` 에 "24시간 재가입 제한" TODO 가 있다. 현재는 WITHDRAWN 이면 로그인 자체를 거부하고, 쿨타임 경과 후 처리가 없다.
 - **퀴즈셋당 평균 문제 수** — 이어풀기와 Redis 도입 정당성에 직결. 10개 남짓이면 이어풀기 가치가 약해지고, 50~100개면 Redis 세션이 확실히 정당화된다.
 - **빈 퀴즈셋 처리** — 2단계 생성 플로우의 부작용. draft 상태를 `quiz_set`에 넣을지를 스키마 확정 전에 정해야 한다.
 - **Redis 장애 시 진행 상태 정책** — 진행 상태가 Redis 전용이 되면서 Redis 유실 = 진행중 세션 전멸이다. 애초에 24h 안에 사라질 값이라 감수 가능한 손실로 보지만, 사용자 안내 문구는 필요하다.

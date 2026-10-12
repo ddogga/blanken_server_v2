@@ -44,6 +44,7 @@ BlankEn은 사용자가 **직접 만든 영어 문장**으로 빈칸 채우기 �
 | **검색** | 제목 키워드 + 카테고리 동적 조건 검색, 최신순 / 인기순 정렬, `pg_trgm` GIN 인덱스 |
 | **좋아요** | 좋아요 · 취소(멱등), 좋아요한 퀴즈셋 목록, 동시 요청에서도 정확한 카운트 |
 | **학습 기록** | 완주 시 점수 · 포기한 문제를 append-only로 기록 (`study_history` + `study_history_detail`) |
+| **팔로우** | 팔로우 · 언팔로우, 팔로잉 / 팔로워 목록 커서 페이징 조회(활동 중인 유저만), 팔로우별 알림 수신 설정 |
 
 ### 설계에서 중점을 둔 부분
 
@@ -73,6 +74,8 @@ erDiagram
     USERS ||--o{ QUIZ_SET : "작성한다"
     USERS ||--o{ QUIZ_SET_LIKE : "좋아요한다"
     USERS ||--o{ STUDY_HISTORY : "학습 기록을 남긴다"
+    USERS ||--o{ FOLLOW : "팔로우한다 (follower)"
+    USERS ||--o{ FOLLOW : "팔로우된다 (followee)"
     CATEGORY ||--o{ QUIZ_SET : "분류한다"
     QUIZ_SET ||--o{ QUIZ : "포함한다"
     QUIZ_SET ||--o{ QUIZ_SET_LIKE : "대상이 된다"
@@ -147,6 +150,16 @@ erDiagram
         bigint quiz_id FK
         boolean gave_up "포기 여부 = 오답"
     }
+
+    FOLLOW {
+        bigint id PK "커서 페이징 기준"
+        bigint follower_id FK "UNIQUE(follower_id, followee_id)"
+        bigint followee_id FK
+        boolean notify_quiz_set_created "새 퀴즈셋 알림 수신"
+        boolean notify_quiz_battle_opened "대결 개설 알림 수신"
+        timestamp created_at "JPA Auditing"
+        timestamp updated_at "JPA Auditing"
+    }
 ```
 
 **설계 노트**
@@ -154,6 +167,7 @@ erDiagram
 - **회원은 `(provider, provider_id)`로 식별**합니다. 소셜 로그인만 허용하므로 비밀번호 컬럼이 없고, 같은 이메일이라도 제공자가 다르면 별개 계정으로 허용합니다. (단 이미 다른 소셜 계정이 존재한다고 사용자에게 고지 합니다.)
 - **오답 = 포기한 문제뿐**입니다. 오답 입력 시 무제한 재입력을 허용하고, 재시도 끝에 맞힌 문제는 정답으로 취급합니다. 따라서 문항별 결과는 `gave_up` 한 컬럼으로 충분합니다.
 - **`study_history`는 append-only**입니다. 최근 1건을 덮어쓰지 않고 완주할 때마다 누적합니다 — 성장 추이 · 오답 변화 추적이 학습 앱의 핵심 가치이고, 불변 이벤트 누적은 갱신 충돌이 없습니다.
+- **팔로우는 방향이 있는 관계 한 행**입니다. 자기 자신 팔로우는 엔티티 생성 시점에 거부하고, 중복 팔로우는 `UNIQUE(follower_id, followee_id)`가 막습니다. 알림 수신 여부를 팔로우 단위로 두어, 이후 알림 팬아웃에서 수신 거부한 팔로워를 걸러낼 수 있게 했습니다.
 - **진행 상태(이어풀기) 테이블은 없습니다.** 어디까지 풀었는지는 Redis Hash(TTL 24h)에만 두고, 완주했을 때만 RDB로 flush합니다. TTL이 곧 "하루 이내에만 이어풀기" 정책이 되어 별도 만료 정리 로직이 필요 없습니다. *(구현 예정)*
 
 <br/>
@@ -350,6 +364,7 @@ sequenceDiagram
 | --- | --- | --- | --- |
 | 좋아요 중복 | check-then-act 경쟁 | `UNIQUE(user_id, quiz_set_id)` + `saveAndFlush`로 즉시 INSERT 후 위반을 도메인 예외로 변환 | ✅ |
 | 좋아요 카운트 | 갱신 유실 (Lost Update) | 더티 체킹 대신 `like_count = like_count + 1` 단일 UPDATE, 취소 시 `like_count > 0` 조건 | ✅ 동시성 테스트 |
+| 팔로우 중복 | check-then-act 경쟁 | `UNIQUE(follower_id, followee_id)` | ✅ |
 | Refresh Token 재사용 | 동시 재발급 | Redis `GETDEL` — 한 요청만 성공 | ✅ |
 | 좋아요 카운트 (고도화) | DB 쓰기 부하 | Redis 원자 `INCR` + 멱등 배치 flush | 예정 |
 | 대결 선착순 | 최초 정답자 1인 확정 | `SETNX winner:{roomId}:{questionId}` — first-writer-wins | 예정 |
@@ -375,6 +390,7 @@ sequenceDiagram
 | 에러 코드 | `도메인 알파벳 + 3자리 순번` — `C` Common · `U` User · `Q` Quiz · `G` Category · `A` Auth, `999`는 서버 오류로 예약 |
 | 역직렬화 실패 | 깨진 JSON · 필수 필드 누락도 `C001`로 통일 (스프링 기본 에러 바디 노출 방지) |
 | 페이징 | `PageResponse<T>`로 감쌈 — `PageImpl` 직렬화 구조에 클라이언트를 묶지 않음 |
+| 커서 페이징 | 무한 스크롤 목록(팔로잉 / 팔로워)은 `CursorResponse<T>(content, nextCursor, hasNext)` — `id DESC` + `id < cursor`, `size + 1`개를 조회해 다음 페이지 유무 판단 |
 | 메서드 | 멱등하지 않은 변경은 `POST`, 부분 수정은 `PATCH` |
 
 API 문서는 서버 실행 후 `http://localhost:8080/blanken/swagger-ui.html`에서 확인할 수 있습니다.
@@ -412,7 +428,7 @@ API 문서는 서버 실행 후 `http://localhost:8080/blanken/swagger-ui.html`�
 
 ```bash
 psql -U user -d blanken -f src/main/resources/schema.sql   # pg_trgm 확장 + GIN 인덱스
-psql -U user -d blanken -f src/main/resources/data.sql     # 카테고리 · 유저 · 퀴즈셋 시드
+psql -U user -d blanken -f src/main/resources/data.sql     # 카테고리 · 유저 · 퀴즈셋 · 좋아요 · 팔로우 시드
 ```
 
 ### 테스트
