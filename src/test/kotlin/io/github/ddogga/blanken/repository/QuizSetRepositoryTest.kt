@@ -29,7 +29,7 @@ class QuizSetRepositoryTest (
     fun init() {
 
         val category = categoryRepository.findByName("토익")
-        searchCategoryId = category.id!!
+        searchCategoryId = category?.id!!
     }
 
 
