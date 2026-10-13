@@ -49,6 +49,12 @@ dependencies {
     kapt("jakarta.annotation:jakarta.annotation-api")
     kapt("jakarta.persistence:jakarta.persistence-api")
 	runtimeOnly("org.postgresql:postgresql")
+
+	// Flyway. 버전은 부트 4.1 BOM 이 관리한다(12.4.0).
+	// 부트 4 는 자동 설정을 모듈별로 쪼갰다 — flyway-core 만 넣으면 자동 설정(spring-boot-flyway)이 빠지므로 스타터로 넣는다.
+	// Flyway 10 부터 DB별 지원이 별도 모듈로 분리됐다. 없으면 기동 시 "Unsupported Database: PostgreSQL".
+	implementation("org.springframework.boot:spring-boot-starter-flyway")
+	runtimeOnly("org.flywaydb:flyway-database-postgresql")
 	compileOnly("org.projectlombok:lombok")
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
