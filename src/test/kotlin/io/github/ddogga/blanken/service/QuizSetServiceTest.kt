@@ -1,5 +1,6 @@
 package io.github.ddogga.blanken.service
 
+import io.github.ddogga.blanken.domain.OauthProvider
 import io.github.ddogga.blanken.domain.quiz.Category
 import io.github.ddogga.blanken.domain.quiz.QuizSet
 import io.github.ddogga.blanken.domain.user.User
@@ -189,8 +190,8 @@ class QuizSetServiceTest {
 	private fun user(): User =
 		User(email = EMAIL,
             nickname = NICKNAME,
-            null,
-            null,
+            oauthProvider = OauthProvider.KAKAO,
+            providerId = PROVIDER_ID,
             UserStatus.ACTIVE,
             UserRole.USER,
             id = OWNER_ID).apply {
@@ -228,5 +229,6 @@ class QuizSetServiceTest {
 		private val CREATED_AT: Instant = Instant.parse("2026-01-02T00:00:00Z")
         private const val NEW_TITLE = "토플 빈출 구동사"
         private const val NEW_DESCRIPTION = "100선"
+        private const val PROVIDER_ID = "122"
 	}
 }

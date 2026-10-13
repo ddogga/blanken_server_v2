@@ -81,7 +81,7 @@ data class QuizSetResponse(
 	val ownerId: Long,
 
 	@field:Schema(description = "소유자 닉네임", example = "blanken")
-	val ownerNickname: String,
+	val ownerNickname: String?,
 
 	@field:Schema(description = "제목", example = "new quiz set")
 	val title: String,

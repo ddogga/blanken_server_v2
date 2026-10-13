@@ -1,6 +1,7 @@
 package io.github.ddogga.blanken.service
 
 
+import io.github.ddogga.blanken.domain.OauthProvider
 import io.github.ddogga.blanken.domain.quiz.Category
 import io.github.ddogga.blanken.domain.quiz.QuizSet
 import io.github.ddogga.blanken.domain.user.User
@@ -104,8 +105,8 @@ class QuizSetLikeServiceTest(
         User(
             email = EMAIL,
             nickname = NICKNAME,
-            null,
-            null,
+            oauthProvider = OauthProvider.KAKAO,
+            providerId = PROVIDER_ID,
             UserStatus.ACTIVE,
             UserRole.USER,
             )
@@ -127,6 +128,7 @@ class QuizSetLikeServiceTest(
         private const val DESCRIPTION = "30선"
         private const val EMAIL = "owner@blanken.io"
         private const val NICKNAME = "blanken"
+        private const val PROVIDER_ID = "122"
         private var OWNER_ID = 1L
         private var QUIZ_SET_ID = 1L
         private var CATEGORY_ID = 1L

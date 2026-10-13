@@ -66,7 +66,7 @@ data class UserResponse(
 	val email: String,
 
 	@field:Schema(description = "닉네임", example = "blanken")
-	val nickname: String,
+	val nickname: String?,
 
     @field:Schema(description = "회원 권한", example = "USER")
     val userRole: UserRole,

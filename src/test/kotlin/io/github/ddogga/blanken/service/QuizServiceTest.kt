@@ -1,5 +1,6 @@
 package io.github.ddogga.blanken.service
 
+import io.github.ddogga.blanken.domain.OauthProvider
 import io.github.ddogga.blanken.domain.quiz.Category
 import io.github.ddogga.blanken.domain.quiz.Quiz
 import io.github.ddogga.blanken.domain.quiz.QuizSet
@@ -104,7 +105,7 @@ class QuizServiceTest {
 
     private fun quizSet(category: Category, id: Long): QuizSet =
         QuizSet(
-            owner = User("x@x.io", "nick", null, null,
+            owner = User("x@x.io", "nick", OauthProvider.KAKAO, PROVIDER_ID,
 
                 UserStatus.ACTIVE, UserRole.USER, 1L).apply {
                 createdAt = CREATED_AT
@@ -148,6 +149,7 @@ class QuizServiceTest {
         private const val UPDATED_SENTENCE = "He tried to {{}} the deadline by two days."
         private const val UPDATED_ANSWER_WORD = "extend"
         private const val NEW_QUIZ_SET_ID = 2L
+        private const val PROVIDER_ID = "122"
         private val CREATED_AT: Instant = Instant.parse("2026-01-02T00:00:00Z")
 
     }

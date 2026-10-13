@@ -1,5 +1,6 @@
 package io.github.ddogga.blanken.service
 
+import io.github.ddogga.blanken.domain.OauthProvider
 import io.github.ddogga.blanken.domain.quiz.Category
 import io.github.ddogga.blanken.domain.quiz.Quiz
 import io.github.ddogga.blanken.domain.quiz.QuizSet
@@ -135,8 +136,8 @@ class StudyHistoryServiceTest(
     private fun user(): User =
         User(email = EMAIL,
             nickname = NICKNAME,
-            null,
-            null,
+            oauthProvider = OauthProvider.KAKAO,
+            providerId = PROVIDER_ID,
             UserStatus.ACTIVE,
             UserRole.USER
         )
@@ -174,6 +175,7 @@ class StudyHistoryServiceTest(
         private const val NICKNAME = "blanken"
         private const val TOTAL_COUNT = 2
         private const val CORRECT_COUNT = 2
+        private const val PROVIDER_ID = "122"
     }
 
 }

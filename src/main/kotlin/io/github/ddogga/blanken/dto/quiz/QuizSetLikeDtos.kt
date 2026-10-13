@@ -30,7 +30,7 @@ data class QuizSetLikeResponse(
     val userId : Long,
 
     @field:Schema(description = "좋아요를 누른 유저 닉네임")
-    val userNickName : String,
+    val userNickName : String?,
 
     @field:Schema(description = "좋아요가 눌린 퀴즈셋 ID")
     val quizSetId : Long,
