@@ -14,9 +14,18 @@ spring:
     username: ${DB_USERNAME:user}
     password: ${DB_PASSWORD:}
     driver-class-name: org.postgresql.Driver
+
+  # 스키마는 Flyway(db/migration) 가 관리한다. 나머지는 부트 기본값으로 충분하다.
+  flyway:
+    # 기본값(false)은 이름 규칙이 틀린 파일(예: `V2_add.sql` — 밑줄 하나)을 에러 없이 건너뛴다.
+    # 마이그레이션이 조용히 누락되는 것을 기동 실패로 드러내기 위해 켠다.
+    validate-migration-naming: true
   jpa:
     hibernate:
-      ddl-auto: ${DDL_AUTO:create}
+      # Hibernate 는 스키마를 바꾸지 않고 엔티티와 일치하는지만 검사한다.
+      # 환경변수로 덮어쓸 수 없게 고정한다 — `DDL_AUTO=create` 하나로 운영 스키마가 재생성되는 경로를 막기 위해.
+      # 일회성으로 바꿔야 하면 `--args='--spring.jpa.hibernate.ddl-auto=...'` 로 넘긴다.
+      ddl-auto: validate
     properties:
       hibernate:
         format_sql: true

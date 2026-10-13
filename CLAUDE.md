@@ -400,6 +400,15 @@ battle_result / battle_result_player
 - 컬렉션은 내부 `MutableList` + 읽기 전용 `List` 노출 + `addXxx()` 로 양방향 연관 세팅.
 - `quiz_set.like_count`는 `protected set` — 엔티티 메서드로는 바꾸지 않는다. 현재는 리포지토리의 원자 UPDATE 쿼리로만 증감하고(§4.5), Redis 카운터 도입 후에는 배치 flush로만 갱신된다.
 
+**스키마 마이그레이션 (Flyway, `db/migration/V1__init_schema.sql`)**
+- **enum 컬럼의 CHECK 제약은 유지한다** (2026-10-13 결정). Hibernate가 `@Enumerated(STRING)` 컬럼마다 `CHECK (col IN (...))` 를 생성했고 V1에 그대로 들어 있다 (`quiz_set_visibility_check`, `users_provider_check`, `users_user_role_check`, `users_user_status_check`).
+  - 근거: 잘못된 값을 애플리케이션이 아니라 DB가 최종적으로 거부한다 — §6의 UNIQUE 제약과 같은 구도.
+  - **대가 — enum 상수를 추가·변경할 때는 CHECK를 바꾸는 마이그레이션(`V{n}__...sql`)을 반드시 같은 배포에 포함한다.** 빠뜨리면 컴파일·`validate` 는 통과하는데(Hibernate `validate` 는 CHECK 를 보지 않는다) **운영에서 새 값을 INSERT/UPDATE 하는 순간 실패**한다. 예: 제공자 `GOOGLE` 추가 → `users_provider_check` 를 DROP 후 재생성.
+- **FK 컬럼 인덱스는 V1에 넣지 않았다 — 보류** (2026-10-13 결정). PostgreSQL은 FK에 인덱스를 자동 생성하지 않고, 엔티티에 `@Index` 가 없어 Hibernate도 만들지 않았다. 현재 인덱스는 PK·UNIQUE·`idx_quiz_set_title_trgm` 뿐이다.
+  - 인덱스 없이 풀스캔되는 조회: `follow.followee_id`(팔로워 목록 — UNIQUE `(follower_id, followee_id)` 는 선두 컬럼이 달라 못 탄다 → 후보 `(followee_id, id)`), `quiz.quiz_set_id`, `quiz_set.category_id`, `quiz_set.owner_id`(+`title` 중복 검사), `study_history.user_id`/`quiz_set_id`.
+  - UNIQUE 선두 컬럼으로 이미 커버되는 것: `follow.follower_id`(팔로잉 목록), `quiz_set_like.user_id`.
+  - 추가할 때는 V1을 고치지 말고 **새 마이그레이션(V2 이후)** 으로 넣는다 — V1은 공유 DB에 한 번 적용되면 체크섬 때문에 수정할 수 없다.
+
 **Redis 키**
 ```
 -- 구현됨

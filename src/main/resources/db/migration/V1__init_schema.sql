@@ -2,22 +2,8 @@
 -- PostgreSQL database dump
 --
 
-\restrict wVRwuMWwdFxYAk2A5qAfd6De7whn8UqEuz8HHeXAbRZJ8MeaVKLw07FraNqMe8M
-
 -- Dumped from database version 17.10
 -- Dumped by pg_dump version 17.10
-
-SET statement_timeout = 0;
-SET lock_timeout = 0;
-SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
-SET client_encoding = 'UTF8';
-SET standard_conforming_strings = on;
-SELECT pg_catalog.set_config('search_path', '', false);
-SET check_function_bodies = false;
-SET xmloption = content;
-SET client_min_messages = warning;
-SET row_security = off;
 
 --
 -- Name: pg_trgm; Type: EXTENSION; Schema: -; Owner: -
@@ -25,17 +11,6 @@ SET row_security = off;
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 
-
---
--- Name: EXTENSION pg_trgm; Type: COMMENT; Schema: -; Owner: -
---
-
-COMMENT ON EXTENSION pg_trgm IS 'text similarity measurement and index searching based on trigrams';
-
-
-SET default_tablespace = '';
-
-SET default_table_access_method = heap;
 
 --
 -- Name: category; Type: TABLE; Schema: public; Owner: -
@@ -247,8 +222,8 @@ CREATE TABLE public.users (
     withdrawn_at timestamp(6) with time zone,
     email character varying(255) NOT NULL,
     nickname character varying(255),
-    provider character varying(255),
-    provider_id character varying(255),
+    provider character varying(255) NOT NULL,
+    provider_id character varying(255) NOT NULL,
     user_role character varying(255) NOT NULL,
     user_status character varying(255) NOT NULL,
     CONSTRAINT users_provider_check CHECK (((provider)::text = ANY ((ARRAY['KAKAO'::character varying, 'NAVER'::character varying])::text[]))),
@@ -383,19 +358,19 @@ CREATE INDEX idx_quiz_set_title_trgm ON public.quiz_set USING gin (title public.
 
 
 --
--- Name: quiz_set fk4kmv140iomg0gi0av2yk2jj5b; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: quiz_set fk_quiz_set_owner; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.quiz_set
-    ADD CONSTRAINT fk4kmv140iomg0gi0av2yk2jj5b FOREIGN KEY (owner_id) REFERENCES public.users(id);
+    ADD CONSTRAINT fk_quiz_set_owner FOREIGN KEY (owner_id) REFERENCES public.users(id);
 
 
 --
--- Name: study_history fk93lfnkhhxaouh0t2s0gi8a9ks; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: study_history fk_study_history_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.study_history
-    ADD CONSTRAINT fk93lfnkhhxaouh0t2s0gi8a9ks FOREIGN KEY (user_id) REFERENCES public.users(id);
+    ADD CONSTRAINT fk_study_history_user FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
@@ -415,64 +390,62 @@ ALTER TABLE ONLY public.follow
 
 
 --
--- Name: quiz_set_like fkh3d52jpjhr3ns87eu72969nd5; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: quiz_set_like fk_quiz_set_like_user; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.quiz_set_like
-    ADD CONSTRAINT fkh3d52jpjhr3ns87eu72969nd5 FOREIGN KEY (user_id) REFERENCES public.users(id);
+    ADD CONSTRAINT fk_quiz_set_like_user FOREIGN KEY (user_id) REFERENCES public.users(id);
 
 
 --
--- Name: study_history fkjghcqui3xrdudxh6jdg00dawl; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: study_history fk_study_history_quiz_set; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.study_history
-    ADD CONSTRAINT fkjghcqui3xrdudxh6jdg00dawl FOREIGN KEY (quiz_set_id) REFERENCES public.quiz_set(id);
+    ADD CONSTRAINT fk_study_history_quiz_set FOREIGN KEY (quiz_set_id) REFERENCES public.quiz_set(id);
 
 
 --
--- Name: quiz_set fkmo88n3xfe0pohwimxvhcttmm9; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: quiz_set fk_quiz_set_category; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.quiz_set
-    ADD CONSTRAINT fkmo88n3xfe0pohwimxvhcttmm9 FOREIGN KEY (category_id) REFERENCES public.category(id);
+    ADD CONSTRAINT fk_quiz_set_category FOREIGN KEY (category_id) REFERENCES public.category(id);
 
 
 --
--- Name: quiz fksuf6fo616t72b5y688u1kwnrv; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: quiz fk_quiz_quiz_set; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.quiz
-    ADD CONSTRAINT fksuf6fo616t72b5y688u1kwnrv FOREIGN KEY (quiz_set_id) REFERENCES public.quiz_set(id);
+    ADD CONSTRAINT fk_quiz_quiz_set FOREIGN KEY (quiz_set_id) REFERENCES public.quiz_set(id);
 
 
 --
--- Name: quiz_set_like fkt1var949xmhm3wcif9epwevs; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: quiz_set_like fk_quiz_set_like_quiz_set; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.quiz_set_like
-    ADD CONSTRAINT fkt1var949xmhm3wcif9epwevs FOREIGN KEY (quiz_set_id) REFERENCES public.quiz_set(id);
+    ADD CONSTRAINT fk_quiz_set_like_quiz_set FOREIGN KEY (quiz_set_id) REFERENCES public.quiz_set(id);
 
 
 --
--- Name: study_history_detail fkthgjrt8muyjbicv26f6fdmwl2; Type: FK CONSTRAINT; Schema: public; Owner: -
---
-
-ALTER TABLE ONLY public.study_history_detail
-    ADD CONSTRAINT fkthgjrt8muyjbicv26f6fdmwl2 FOREIGN KEY (quiz_id) REFERENCES public.quiz(id);
-
-
---
--- Name: study_history_detail fktrwhdje8rjwi5pi668egtjkmy; Type: FK CONSTRAINT; Schema: public; Owner: -
+-- Name: study_history_detail fk_study_history_detail_quiz; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
 ALTER TABLE ONLY public.study_history_detail
-    ADD CONSTRAINT fktrwhdje8rjwi5pi668egtjkmy FOREIGN KEY (history_id) REFERENCES public.study_history(id);
+    ADD CONSTRAINT fk_study_history_detail_quiz FOREIGN KEY (quiz_id) REFERENCES public.quiz(id);
+
+
+--
+-- Name: study_history_detail fk_study_history_detail_history; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.study_history_detail
+    ADD CONSTRAINT fk_study_history_detail_history FOREIGN KEY (history_id) REFERENCES public.study_history(id);
 
 
 --
 -- PostgreSQL database dump complete
 --
-
-\unrestrict wVRwuMWwdFxYAk2A5qAfd6De7whn8UqEuz8HHeXAbRZJ8MeaVKLw07FraNqMe8M
 
