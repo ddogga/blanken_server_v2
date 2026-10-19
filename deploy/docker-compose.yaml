@@ -1,0 +1,54 @@
+
+services:
+  app:
+    image: ${APP_IMAGE:?.env에 APP_IMAGE(ECR 이미지 주소:태그)를 설정하세요}
+    ports:
+      - "8080:8080"
+    environment:
+      # ── DB (RDS) ──
+      DB_URL: ${DB_URL:?.env에 DB_URL(RDS JDBC URL)을 설정하세요}
+      DB_USERNAME: ${DB_USERNAME:?.env에 DB_USERNAME을 설정하세요}
+      DB_PASSWORD: ${DB_PASSWORD:?.env에 DB_PASSWORD를 설정하세요}
+
+      # ── Redis (ElastiCache) ──
+      SPRING_DATA_REDIS_HOST: ${REDIS_HOST:?.env에 REDIS_HOST(ElastiCache 엔드포인트)를 설정하세요}
+      SPRING_DATA_REDIS_PORT: ${REDIS_PORT:-6379}
+      # 전송 중 암호화(in-transit encryption)을 켰다면 true.
+      SPRING_DATA_REDIS_SSL_ENABLED: ${REDIS_SSL_ENABLED:-false}
+
+      # ── Secret ──
+      JWT_SECRET: ${JWT_SECRET:?.env 에 JWT_SECRET 을 설정하세요}
+      KAKAO_CLIENT_ID: ${KAKAO_CLIENT_ID:?.env 에 KAKAO_CLIENT_ID 를 설정하세요}
+      KAKAO_CLIENT_SECRET: ${KAKAO_CLIENT_SECRET:?.env 에 KAKAO_CLIENT_SECRET 을 설정하세요}
+      NAVER_CLIENT_ID: ${NAVER_CLIENT_ID:?.env 에 NAVER_CLIENT_ID 를 설정하세요}
+      NAVER_CLIENT_SECRET: ${NAVER_CLIENT_SECRET:?.env 에 NAVER_CLIENT_SECRET 을 설정하세요}
+
+      # ── 프론트 주소 ──
+      APP_CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:?.env 에 CORS_ALLOWED_ORIGINS 를 설정하세요}
+      APP_OAUTH2_REDIRECT_SIGNUP: ${OAUTH2_REDIRECT_SIGNUP:?.env 에 OAUTH2_REDIRECT_SIGNUP 을 설정하세요}
+      APP_OAUTH2_REDIRECT_SUCCESS: ${OAUTH2_REDIRECT_SUCCESS:?.env 에 OAUTH2_REDIRECT_SUCCESS 를 설정하세요}
+      APP_OAUTH2_REDIRECT_FAILURE: ${OAUTH2_REDIRECT_FAILURE:?.env 에 OAUTH2_REDIRECT_FAILURE 를 설정하세요}
+
+      # ── 리버스 프록시(ALB) 설정 ──
+      # 프록시가 붙여준 X-Forwarded-* 헤더를 믿고 원래 요청 정보(https, 도메인, 클라이언트 IP)복원을 허용하는 설정
+      SERVER_FORWARD_HEADERS_STRATEGY: native
+
+      # ── 로그 ──
+      # application.yaml에 설정된 SQL과 바인딩 파라미터 표시 옵션을 운영에서는 끔.
+      LOGGING_LEVEL_ORG_HIBERNATE_SQL: info
+      LOGGING_LEVEL_ORG_HIBERNATE_ORM_JDBC_BIND: info
+
+    # docker stop 유예 기간을 10초(기본값) -> 40초로 늘림
+    # 스프링 graceful shutdown은 유예 기간이 최대 30초 이므로 그보다 길게 줌.
+    # 무중단 배포시 옛 컨테이너가 요청을 끊지 않고 내려가게 하기 위함.
+    stop_grace_period: 40s
+
+    # json-file 기본 설정은 로그를 무한히 쌓아서 오래 돌면 EC2 디스크가 찬다.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m" # 로그 파일 하나가 10MB가 되면
+        max-file: "5"   # 새 파일로 넘어가고, 최대 5개 까지만 보관
+
+    # 컨테이너 자동 재시작 정책 - 기본적으로 앱이 죽었을 때 다시 띄우지만 내가 일부러 stop한 경우는 띄우지 않음.
+    restart: unless-stopped
