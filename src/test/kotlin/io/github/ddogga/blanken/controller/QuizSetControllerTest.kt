@@ -20,6 +20,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageRequest
 import org.springframework.http.MediaType
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.post
@@ -32,6 +33,7 @@ import java.time.Instant
  * 서비스는 목으로 끊고 HTTP 계약만 본다 — 상태 코드, `Location` 헤더, 도메인 예외 → `ErrorCode` 변환, 응답 JSON 구조.
  */
 @Import(TestSecurityConfig::class)
+@ActiveProfiles("test")
 @WebMvcTest(QuizSetController::class)
 class QuizSetControllerTest(
 	@Autowired private val mockMvc: MockMvc,

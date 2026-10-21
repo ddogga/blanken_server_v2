@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
 import org.springframework.test.web.servlet.patch
@@ -23,6 +24,7 @@ import org.springframework.test.web.servlet.put
 
 
 @Import(TestSecurityConfig::class)
+@ActiveProfiles("test")
 @WebMvcTest(QuizController::class)
 class QuizControllerTest(
     @Autowired private val mockMvc: MockMvc

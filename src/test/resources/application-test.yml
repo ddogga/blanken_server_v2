@@ -1,0 +1,7 @@
+
+# main application의 jwt secret 설정을 덮어 씀.
+#
+
+app:
+  jwt:
+    secret: dGVzdC1vbmx5LXNlY3JldC1rZXktZm9yLWNpLXRlc3RzLWxvbmctZW5vdWdoLTEyMzQ1Njc4OQ==

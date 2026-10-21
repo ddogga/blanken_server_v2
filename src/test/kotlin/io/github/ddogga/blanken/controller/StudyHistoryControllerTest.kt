@@ -9,6 +9,7 @@ import org.springframework.http.MediaType
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest
 import org.springframework.context.annotation.Import
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.post
 import java.math.BigDecimal
@@ -16,6 +17,7 @@ import kotlin.test.Test
 
 
 @Import(TestSecurityConfig::class)
+@ActiveProfiles("test")
 @WebMvcTest(StudyHistoryController::class)
 class StudyHistoryControllerTest (
   @Autowired private val mockMvc: MockMvc
