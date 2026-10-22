@@ -40,6 +40,8 @@ services:
       LOGGING_LEVEL_ORG_HIBERNATE_SQL: info
       LOGGING_LEVEL_ORG_HIBERNATE_ORM_JDBC_BIND: info
 
+    mem_limit: 700m
+
     # docker stop 유예 기간을 10초(기본값) -> 40초로 늘림
     # 스프링 graceful shutdown은 유예 기간이 최대 30초 이므로 그보다 길게 줌.
     # 무중단 배포시 옛 컨테이너가 요청을 끊지 않고 내려가게 하기 위함.
