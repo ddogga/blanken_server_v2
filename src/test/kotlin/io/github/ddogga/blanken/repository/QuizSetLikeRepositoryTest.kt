@@ -3,7 +3,6 @@ package io.github.ddogga.blanken.repository
 
 import io.github.ddogga.blanken.config.QuerydslConfig
 import io.github.ddogga.blanken.support.PostgresTestContainerConfig
-import io.mockk.verify
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
