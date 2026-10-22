@@ -1,9 +1,11 @@
 
 services:
   app:
-    image: ${APP_IMAGE:?.env에 APP_IMAGE(ECR 이미지 주소:태그)를 설정하세요}
+    image: ${APP_IMAGE}
     ports:
-      - "8080:8080"
+      - "127.0.0.1:${HOST_PORT}:8080"
+    env_file:
+      - .env
     environment:
       # ── DB (RDS) ──
       DB_URL: ${DB_URL:?.env에 DB_URL(RDS JDBC URL)을 설정하세요}

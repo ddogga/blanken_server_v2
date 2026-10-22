@@ -59,6 +59,9 @@ dependencies {
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 
+    // health 체크 엔드 포인트 추가 - 무중단 배포 확인용
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+
 	// 부트 4 는 테스트 슬라이스를 모듈별 아티팩트로 쪼갰다. @DataJpaTest 는 여기에만 있다.
 	testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
 	// Testcontainers. 버전은 부트 BOM 이 관리한다(2.0.5).

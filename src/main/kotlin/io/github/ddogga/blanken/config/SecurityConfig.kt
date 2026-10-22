@@ -66,6 +66,8 @@ class SecurityConfig(
                 authorize("/oauth2/**", permitAll)
                 authorize("/login/oauth2/**", permitAll)
 
+                authorize("/blanken/actuator/health", permitAll)
+
                 // 컨트롤러 예외 포워딩 경로 (막으면 원래 에러가 401로 가려짐)
                 authorize("/error", permitAll)
 
