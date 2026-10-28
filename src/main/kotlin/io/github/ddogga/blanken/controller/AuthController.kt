@@ -5,6 +5,7 @@ import io.github.ddogga.blanken.config.auth.jwt.AuthTokenService
 import io.github.ddogga.blanken.config.auth.jwt.RefreshTokenCookie
 import io.github.ddogga.blanken.config.auth.jwt.ReissueResult
 import io.github.ddogga.blanken.dto.auth.JwtProperties
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.CookieValue
@@ -28,13 +29,14 @@ class AuthController (
     @PostMapping("/refresh")
     fun refresh(
         @CookieValue(name = RefreshTokenCookie.NAME, required = false) refreshToken: String?,
+        request: HttpServletRequest,
         response: HttpServletResponse,
     ): ResponseEntity<Any> {
         val result = refreshToken?.let { authTokenService.reissue(it) } ?: ReissueResult.Failure
 
         return when (result) {
             is ReissueResult.Success -> {
-                RefreshTokenCookie.add(response, result.refreshToken.value, jwtProperties.refreshTokenExpiry)
+                RefreshTokenCookie.add(request, response, result.refreshToken.value, jwtProperties.refreshTokenExpiry)
 
                 ResponseEntity.ok(
                     AccessTokenResponse(
@@ -45,7 +47,7 @@ class AuthController (
             }
 
             ReissueResult.Failure -> {
-                RefreshTokenCookie.delete(response)     // 쓸 수 없는 쿠키는 정리
+                RefreshTokenCookie.delete(request, response)     // 쓸 수 없는 쿠키는 정리
                 val code = AuthErrorCode.REFRESH_TOKEN_INVALID
                 ResponseEntity.status(code.status).body(ErrorResponse(code.name, code.message))
             }
@@ -56,10 +58,11 @@ class AuthController (
     @PostMapping("/logout")
     fun logout(
         @CookieValue(name = RefreshTokenCookie.NAME, required = false) refreshToken: String?,
+        request: HttpServletRequest,
         response: HttpServletResponse,
     ): ResponseEntity<Unit> {
         refreshToken?.let { authTokenService.revoke(it) }
-        RefreshTokenCookie.delete(response)
+        RefreshTokenCookie.delete(request, response)
         return ResponseEntity.noContent().build()
     }
 

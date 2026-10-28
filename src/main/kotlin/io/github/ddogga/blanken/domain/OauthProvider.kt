@@ -68,12 +68,18 @@ enum class OauthProvider(val providerName: String) {
     companion object {
         fun from(providerName: String): OauthProvider =
             entries.find { it.providerName == providerName}
-                ?: throw invalidOauth2UserInfo("지원하지 않는 제공자입니다: $providerName")
+                ?: throw invalidOauth2UserInfo("지원하지 않는 제공자입니다: $providerName", UNSUPPORTED_PROVIDER)
     }
 
 }
 
 
-private fun invalidOauth2UserInfo(message: String) =
-    OAuth2AuthenticationException(OAuth2Error
-        (ErrorCode.INVALID_OAUTH2_USER_INFO.message), message)
+
+private const val INVALID_USER_INFO = "invalid_user_info"
+private const val UNSUPPORTED_PROVIDER = "unsupported_provider"
+
+private fun invalidOauth2UserInfo(message: String, errorCode: String = INVALID_USER_INFO) =
+    OAuth2AuthenticationException(
+        OAuth2Error(errorCode, ErrorCode.INVALID_OAUTH2_USER_INFO.message, null),
+        message,
+    )

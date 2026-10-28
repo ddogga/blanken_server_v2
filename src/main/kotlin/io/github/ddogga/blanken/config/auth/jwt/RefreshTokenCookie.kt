@@ -1,6 +1,7 @@
 package io.github.ddogga.blanken.config.auth.jwt
 
 import io.github.ddogga.blanken.config.auth.util.CookieUtils
+import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
 import java.time.Duration
 
@@ -12,13 +13,15 @@ object RefreshTokenCookie {
     const val NAME = "refresh_token"
 
     // /auth/refresh, /auth/logout 요청에만 전송 -> 일반 API 요청에는 Refresh Token이 실리지 않음.
-    const val PATH = "/auth"
+    private const val AUTH_PATH = "/auth"
 
-    fun add(response: HttpServletResponse, token: String, maxAge: Duration) {
-        CookieUtils.addCookie(response, NAME, token, maxAge, PATH)
+    fun add(request: HttpServletRequest, response: HttpServletResponse, token: String, maxAge: Duration) {
+        CookieUtils.addCookie(response, NAME, token, maxAge, path(request))
     }
 
-    fun delete(response: HttpServletResponse) {
-        CookieUtils.deleteCookie(response, NAME, PATH)
+    fun delete(request: HttpServletRequest, response: HttpServletResponse) {
+        CookieUtils.deleteCookie(response, NAME, path(request))
     }
+
+    private fun path(request: HttpServletRequest): String = request.contextPath + AUTH_PATH
 }

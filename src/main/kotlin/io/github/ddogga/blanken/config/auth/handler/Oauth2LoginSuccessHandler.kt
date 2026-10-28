@@ -53,7 +53,7 @@ class Oauth2LoginSuccessHandler(
 
         // Refresh Token 발급(Redis 저장) -> 쿠키
         val refreshToken = authTokenService.issueRefreshToken(principal.userId)
-        RefreshTokenCookie.add(response, refreshToken.value, jwtProperties.refreshTokenExpiry)
+        RefreshTokenCookie.add(request, response, refreshToken.value, jwtProperties.refreshTokenExpiry)
 
         // GUEST, PENDING 유저 확인 -> 가입 페이지로 이동
 
