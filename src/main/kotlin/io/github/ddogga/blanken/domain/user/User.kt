@@ -31,8 +31,9 @@ import java.time.Instant
     )
 class User(
 
-    @Column(name = "email", nullable = false, length = 255)
-	var email: String,
+    /** 소셜 제공자가 이메일을 주지 않으면 null */
+    @Column(name = "email", length = 255)
+	var email: String?,
 
     //필요시 추가
 //    @Column(name = "phon_number", unique = true)

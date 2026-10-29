@@ -119,7 +119,7 @@ class UserService(
     fun socialRegister(userInfo: Oauth2UserInfo): LoginUser {
 
         val user = User(
-            email = NEW_USER_EMAIL,
+            email = userInfo.email,
             nickname = NEW_USER_NAME,
             oauthProvider = userInfo.oauthProvider,
             providerId = userInfo.providerId,
@@ -145,6 +145,5 @@ class UserService(
 
     companion object {
         private const val NEW_USER_NAME = "새로운 유저"
-        private const val NEW_USER_EMAIL = "newbie@blanken.com"
     }
 }
