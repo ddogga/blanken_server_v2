@@ -38,7 +38,7 @@ class QuizSetController(
     @PostMapping
     fun create(@Valid @RequestBody request: QuizSetCreateRequest): ResponseEntity<QuizSetResponse>{
         val newQuizSet = quizSetService.create(request)
-        return ResponseEntity.created(URI.create("/api/quiz-sets/${newQuizSet.id}")).body(newQuizSet)
+        return ResponseEntity.created(URI.create("/blanken/api/quiz-sets/${newQuizSet.id}")).body(newQuizSet)
     }
 
     @Operation(summary = "퀴즈셋 수정", description = "퀴즈셋을 수정합니다.")

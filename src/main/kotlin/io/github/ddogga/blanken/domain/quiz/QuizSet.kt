@@ -18,9 +18,17 @@ import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 
 @Entity
-@Table(name = "quiz_set")
+@Table(name = "quiz_set",
+    uniqueConstraints = [
+        UniqueConstraint(
+            name = "quiz_set_owner_id_title",
+            columnNames = ["owner_id", "title"]
+        )
+        ]
+    )
 class QuizSet(
 
     /** owner 정보는 QuizSet 생성 시점에 있어야 하므로 생성자 안*/
