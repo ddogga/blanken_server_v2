@@ -81,7 +81,8 @@ class SecurityConfig(
                 authorize("/v3/api-docs/**", permitAll)    // swagger-config 포함
 
                 authorize("/admin/**", hasRole("ADMIN"))
-                authorize(anyRequest, permitAll )
+                authorize("/auth/**", permitAll)
+//                authorize(anyRequest, permitAll )
 //                authorize(anyRequest, hasRole("USER")) // GUEST 차단 - 운영 환경에서 주석 해제 TODO: 추후 프로파일로 개발, 운영 환경 분리
             }
 
