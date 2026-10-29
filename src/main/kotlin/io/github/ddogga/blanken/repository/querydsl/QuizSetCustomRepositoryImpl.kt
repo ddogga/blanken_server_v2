@@ -25,33 +25,34 @@ class QuizSetCustomRepositoryImpl (
 ) : QuizSetCustomRepository {
 
 
-    override fun searchQuizSet(keyword: String?, categoryId: Long?, orderEnum: QuizSetOrderEnum, pageable: Pageable): Page<QuizSetResponse> {
+    override fun searchQuizSet(
+        keyword: String?,
+        categoryId: Long?,
+        orderEnum: QuizSetOrderEnum,
+        pageable: Pageable
+    ): Page<QuizSetResponse> =
+        fetchQuizSetPage(searchPredicates(keyword, categoryId), orderEnum, pageable)
 
+
+    override fun getUserQuizSets(
+        userId: Long,
+        orderEnum: QuizSetOrderEnum,
+        pageable: Pageable
+    ): Page<QuizSetResponse> =
+        fetchQuizSetPage(arrayOf(ownerIdEq(userId)), orderEnum, pageable)
+
+
+    private fun fetchQuizSetPage(
+        predicates: Array<Predicate?>,
+        orderEnum: QuizSetOrderEnum,
+        pageable: Pageable
+    ): Page<QuizSetResponse> {
         val content = queryFactory
-            .select(
-                Projections.constructor(
-                    QuizSetResponse::class.java,
-                    quizSet.id,
-                    user.id,
-                    user.nickname,
-                    quizSet.title,
-                    quizSet.description,
-                    quizSet.visibility,
-                    quizSet.likeCount,
-                    quizSet.quizCount,
-                    Projections.constructor(
-                        CategoryResponse::class.java,
-                        category.id,
-                        category.name
-                    ),
-                    quizSet.createdAt,
-                    quizSet.updatedAt
-                )
-            )
+            .select(quizSetResponseProjection)
             .from(quizSet)
             .join(quizSet.category, category)
             .join(quizSet.owner, user)
-            .where(*searchPredicates(keyword, categoryId))
+            .where(*predicates)
             .orderBy(*orderSpecifiers(orderEnum))
             .offset(pageable.offset)
             .limit(pageable.pageSize.toLong())
@@ -60,11 +61,29 @@ class QuizSetCustomRepositoryImpl (
         val countQuery = queryFactory
             .select(quizSet.count())
             .from(quizSet)
-            .where(*searchPredicates(keyword, categoryId))
+            .where(*predicates)
 
         return PageableExecutionUtils.getPage(content, pageable) { countQuery.fetchOne() ?: 0L }
     }
 
+
+    private val quizSetResponseProjection = Projections.constructor(
+        QuizSetResponse::class.java,
+        quizSet.id,
+        user.id,
+        user.nickname,
+        quizSet.title,
+        quizSet.description,
+        quizSet.visibility,
+        quizSet.likeCount,
+        quizSet.quizCount,
+        Projections.constructor(CategoryResponse::class.java, category.id, category.name),
+        quizSet.createdAt,
+        quizSet.updatedAt
+    )
+
+
+    private fun ownerIdEq(userId: Long): BooleanExpression = quizSet.owner.id.eq(userId)
 
     private fun searchPredicates(keyword: String?, categoryId: Long?): Array<Predicate?> {
         return arrayOf(

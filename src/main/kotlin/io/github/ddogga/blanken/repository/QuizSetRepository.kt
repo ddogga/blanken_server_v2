@@ -2,6 +2,7 @@ package io.github.ddogga.blanken.repository
 
 import io.github.ddogga.blanken.domain.quiz.QuizSet
 import io.github.ddogga.blanken.repository.querydsl.QuizSetCustomRepository
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query

@@ -13,4 +13,12 @@ interface QuizSetCustomRepository {
         orderEnum: QuizSetOrderEnum,
         pageable: Pageable
     ): Page<QuizSetResponse>
+
+
+    fun getUserQuizSets(
+        userId: Long,
+        orderEnum: QuizSetOrderEnum,
+        pageable: Pageable
+    ) : Page<QuizSetResponse>
+
 }

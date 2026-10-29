@@ -70,6 +70,15 @@ class QuizSetService(
         PageResponse.from(quizSetRepository
             .searchQuizSet(keyword, categoryId, orderEnum, pageable))
 
+
+
+
+    fun getUserQuizSets(userId: Long, orderEnum: QuizSetOrderEnum, pageable: Pageable
+    ): PageResponse<QuizSetResponse> =
+        PageResponse.from(
+            quizSetRepository.getUserQuizSets(userId, orderEnum, pageable)
+        )
+
     private fun findCategoryById(categoryId: Long): Category =
         categoryRepository.findByIdOrNull(categoryId)
             ?: throw CategoryNotFoundException(categoryId)
@@ -79,5 +88,6 @@ class QuizSetService(
         if (isDuplicated) {
             throw QuizSetTitleDuplicationException(title)
         }
+
     }
 }

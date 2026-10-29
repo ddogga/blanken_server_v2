@@ -91,4 +91,16 @@ class QuizSetController(
     ): PageResponse<QuizSetResponse> =
         quizSetLikeService.getLikeQuizSets(userId, pageable)
 
+
+    @Operation(summary = "유저 퀴즈셋 목록 조회", description = "사용자가 생성한 퀴즈셋 목록을 조회합니다.")
+    @GetMapping("/users/{userId}")
+    fun getUserQuizSets(
+        @Parameter(description = "유저 ID", example = "1")
+        @PathVariable userId: Long,
+        @RequestParam(required = true) orderEnum: QuizSetOrderEnum,
+        @PageableDefault(size = 20)
+        pageable: Pageable
+    ): PageResponse<QuizSetResponse> =
+        quizSetService.getUserQuizSets(userId, orderEnum, pageable)
+
 }
