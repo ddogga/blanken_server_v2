@@ -93,7 +93,7 @@ class JwtTokenProvider (
         }
 
     fun validationRefreshToken(token: String): TokenResult<RefreshTokenPayload> =
-        parse(token, TokenType.ACCESS) {
+        parse(token, TokenType.REFRESH) {
             claims ->
             RefreshTokenPayload(
                 userId = requireNotNull(claims.subject).toLong(),
