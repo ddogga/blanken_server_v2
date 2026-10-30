@@ -205,8 +205,8 @@ numbered AS (
            (row_number() OVER (ORDER BY id) - 1)::int AS idx
     FROM quiz_set
 )
-INSERT INTO quiz (quiz_set_id, sentence, answer_word, hint, created_at, updated_at)
-SELECT s.id, p.sentence, p.answer_word, p.hint, now(), now()
+INSERT INTO quiz (quiz_set_id, sentence, answer_word, hint, order_index, created_at, updated_at)
+SELECT s.id, p.sentence, p.answer_word, p.hint, g.n - 1, now(), now()
 FROM numbered s
 CROSS JOIN LATERAL generate_series(1, s.quiz_count) AS g(n)
 JOIN pool p ON p.n = ((s.idx + g.n - 1) % 16) + 1
