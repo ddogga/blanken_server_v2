@@ -1,13 +1,16 @@
 package io.github.ddogga.blanken.service
 
 import io.github.ddogga.blanken.domain.quiz.Category
+import io.github.ddogga.blanken.domain.quiz.Quiz
 import io.github.ddogga.blanken.domain.quiz.QuizSet
 import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
+import io.github.ddogga.blanken.dto.quiz.QuizSetDetailResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
+import io.github.ddogga.blanken.exception.QuizNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
@@ -48,17 +51,42 @@ class QuizSetService(
 
 
     @Transactional
-    fun update(quizSetId: Long, request: QuizSetUpdateRequest): QuizSetResponse {
+    fun update(quizSetId: Long, request: QuizSetUpdateRequest): QuizSetDetailResponse {
 
-        val quizSet = quizSetRepository.findWithCategoryById(quizSetId)
+        val quizSet = quizSetRepository.findWithCategoryAndQuizzesById(quizSetId)
             ?: throw QuizSetNotFoundException(quizSetId)
 
-        checkTitleDuplication(quizSet.owner.id!!, request.title)
+        if (quizSet.title != request.title) checkTitleDuplication(quizSet.owner.id!!, request.title)
 
         quizSet.update(request)
         quizSet.updateCategory(findCategoryById(request.categoryId))
 
-        return QuizSetResponse.from(quizSet)
+        val existQuizMap = quizSet.quizzes.associateBy { it.id }
+
+        // quiz delete
+        val newQuizIds = request.quizzes.map { it.id }.toSet()
+        quizSet.quizzes.forEach { it ->
+            if (it.id !in newQuizIds) quizSet.removeQuiz(it)
+        }
+
+        // quiz update
+        request.quizzes.forEachIndexed { index, dto ->
+            if (dto.id != null) {
+                (existQuizMap[dto.id] ?: throw QuizNotFoundException(dto.id))
+                    .update(dto)
+            } else {
+                quizSet.addQuiz(Quiz(
+                    sentence = dto.sentence,
+                    answerWord = dto.answerWord,
+                    hint = dto.hint,
+                    orderIndex = dto.orderIndex
+                ))
+            }
+        }
+
+        quizSetRepository.flush()
+
+        return QuizSetDetailResponse.from(quizSet)
     }
 
     fun search(
@@ -90,4 +118,6 @@ class QuizSetService(
         }
 
     }
+
+
 }

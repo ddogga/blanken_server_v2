@@ -3,6 +3,7 @@ package io.github.ddogga.blanken.controller
 import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
+import io.github.ddogga.blanken.dto.quiz.QuizSetDetailResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.service.QuizSetLikeService
@@ -41,13 +42,13 @@ class QuizSetController(
         return ResponseEntity.created(URI.create("/blanken/api/quiz-sets/${newQuizSet.id}")).body(newQuizSet)
     }
 
-    @Operation(summary = "퀴즈셋 수정", description = "퀴즈셋을 수정합니다.")
+    @Operation(summary = "퀴즈셋 수정", description = "퀴즈셋과 퀴즈 리스트를 수정합니다.")
     @PutMapping("/{quizSetId}")
     fun update(
         @Parameter(description = "퀴즈셋 ID", example = "1")
         @PathVariable quizSetId: Long,
         @Valid @RequestBody request: QuizSetUpdateRequest
-    ): QuizSetResponse = quizSetService.update(quizSetId, request)
+    ): QuizSetDetailResponse = quizSetService.update(quizSetId, request)
 
     @Operation(summary = "퀴즈셋 검색", description = "퀴즈셋을 키워드, 카테고리로 검색합니다.")
     @GetMapping

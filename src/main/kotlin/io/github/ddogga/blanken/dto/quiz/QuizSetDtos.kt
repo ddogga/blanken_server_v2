@@ -4,6 +4,7 @@ import io.github.ddogga.blanken.domain.quiz.QuizSet
 import io.github.ddogga.blanken.domain.quiz.Visibility
 import io.github.ddogga.blanken.dto.category.CategoryResponse
 import io.swagger.v3.oas.annotations.media.Schema
+import jakarta.validation.Valid
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.Positive
@@ -61,6 +62,10 @@ data class QuizSetUpdateRequest(
     @field:Positive(message = "카테고리 ID는 양수여야 합니다.")
     val categoryId: Long,
 
+    @field:Schema(description = "수정할 퀴즈 리스트")
+    @field:Valid
+    val quizzes: List<QuizRequest>
+
 )
 
 /**
@@ -108,7 +113,9 @@ data class QuizSetResponse(
 
 	@field:Schema(description = "마지막 수정 시각")
 	val updatedAt: Instant,
+
 ) {
+
 	companion object {
 		fun from(quizSet: QuizSet): QuizSetResponse = QuizSetResponse(
 			id = requireNotNull(quizSet.id) { "저장되지 않은 QuizSet 은 응답으로 변환할 수 없습니다." },
@@ -124,4 +131,66 @@ data class QuizSetResponse(
 			updatedAt = quizSet.updatedAt,
 		)
 	}
+
+}
+
+@Schema(description = "퀴즈셋 정보 - 퀴즈 목록 포함")
+data class QuizSetDetailResponse(
+
+    @field:Schema(description = "퀴즈셋 ID", example = "1")
+    val id: Long,
+
+    @field:Schema(description = "소유자 유저 ID", example = "1")
+    val ownerId: Long,
+
+    @field:Schema(description = "소유자 닉네임", example = "blanken")
+    val ownerNickname: String?,
+
+    @field:Schema(description = "제목", example = "new quiz set")
+    val title: String,
+
+    @field:Schema(description = "설명", example = "토익 빈출 동사 30선")
+    val description: String?,
+
+    @field:Schema(description = "공개 범위", example = "PUBLIC")
+    val visibility: Visibility,
+
+    /** 정합성 기준은 DB지만 평상시 값은 Redis 카운터다. Redis 도입 후에는 그 값으로 덮어써야 한다. */
+    @field:Schema(description = "좋아요 수", example = "12")
+    val likeCount: Int,
+
+    /** 2단계 생성 플로우상 생성 직후에는 항상 0이다. */
+    @field:Schema(description = "퀴즈 개수", example = "20")
+    val quizCount: Int,
+
+    @field:Schema(description = "카테고리")
+    val category: CategoryResponse,
+
+    @field:Schema(description = "생성 시각")
+    val createdAt: Instant,
+
+    @field:Schema(description = "마지막 수정 시각")
+    val updatedAt: Instant,
+
+    @field:Schema(description = "퀴즈 목록")
+    var quizzes: List<QuizResponse>
+
+) {
+
+    companion object {
+        fun from(quizSet: QuizSet): QuizSetDetailResponse = QuizSetDetailResponse(
+            id = requireNotNull(quizSet.id) { "저장되지 않은 QuizSet 은 응답으로 변환할 수 없습니다." },
+            ownerId = requireNotNull(quizSet.owner.id) { "저장되지 않은 User 는 소유자로 변환할 수 없습니다." },
+            ownerNickname = quizSet.owner.nickname,
+            title = quizSet.title,
+            description = quizSet.description,
+            visibility = quizSet.visibility,
+            likeCount = quizSet.likeCount,
+            quizCount = quizSet.quizzes.size,
+            category = CategoryResponse.from(quizSet.category),
+            createdAt = quizSet.createdAt,
+            updatedAt = quizSet.updatedAt,
+            quizzes = quizSet.quizzes.map { QuizResponse.from(it, quizSet.id!!) }
+        )
+    }
 }

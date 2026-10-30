@@ -2,11 +2,13 @@ package io.github.ddogga.blanken.service
 
 import io.github.ddogga.blanken.domain.OauthProvider
 import io.github.ddogga.blanken.domain.quiz.Category
+import io.github.ddogga.blanken.domain.quiz.Quiz
 import io.github.ddogga.blanken.domain.quiz.QuizSet
 import io.github.ddogga.blanken.domain.user.User
 import io.github.ddogga.blanken.domain.user.UserRole
 import io.github.ddogga.blanken.domain.user.UserStatus
 import io.github.ddogga.blanken.domain.quiz.Visibility
+import io.github.ddogga.blanken.dto.quiz.QuizRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
@@ -26,6 +28,7 @@ import java.time.Instant
 import java.util.Optional
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertSame
 
 /**
  * `QuizSetService` 단위 테스트.
@@ -139,7 +142,7 @@ class QuizSetServiceTest {
 
         every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, NEW_TITLE) } returns false
         every { categoryRepository.findById(CATEGORY_ID_3) } returns Optional.of(newCategory)
-        every { quizSetRepository.findWithCategoryById(QUIZ_SET_ID) } returns quizSet(owner, category)
+        every { quizSetRepository.findWithCategoryAndQuizzesById(QUIZ_SET_ID) } returns quizSet(owner, category)
 
         // when
         val response = quizSetService.update(QUIZ_SET_ID, updateRequest())
@@ -153,9 +156,89 @@ class QuizSetServiceTest {
     }
 
 	@Test
+	fun `퀴즈셋_수정시_id가_있는_퀴즈는_기존_퀴즈를_수정한다`() {
+		// given
+		val quizSet = quizSet(user(), category(CATEGORY_ID_1, "토익"))
+		val existing = quiz(id = QUIZ_ID_1, orderIndex = 0)
+		quizSet.addQuiz(existing)
+
+		givenUpdatable(quizSet)
+
+		// when
+		val response = quizSetService.update(
+			QUIZ_SET_ID,
+			updateRequest(quizzes = listOf(
+				quizRequest(id = QUIZ_ID_1, sentence = NEW_SENTENCE, answerWord = NEW_ANSWER, hint = NEW_HINT, orderIndex = 0),
+			)),
+		)
+
+		// then
+		// 새 엔티티로 갈아끼우지 않고 같은 영속 엔티티를 고쳐야 더티 체킹으로 UPDATE 된다
+		assertEquals(1, quizSet.quizzes.size)
+		assertSame(existing, quizSet.quizzes.single())
+		assertEquals(NEW_SENTENCE, existing.sentence)
+		assertEquals(NEW_ANSWER, existing.answerWord)
+		assertEquals(NEW_HINT, existing.hint)
+		assertEquals(1, response.quizCount)
+	}
+
+	@Test
+	fun `퀴즈셋_수정시_id가_없는_퀴즈는_새로_추가한다`() {
+		// given
+		val quizSet = quizSet(user(), category(CATEGORY_ID_1, "토익"))
+		quizSet.addQuiz(quiz(id = QUIZ_ID_1, orderIndex = 0))
+
+		givenUpdatable(quizSet)
+
+		// when
+		val response = quizSetService.update(
+			QUIZ_SET_ID,
+			updateRequest(quizzes = listOf(
+				quizRequest(id = QUIZ_ID_1, orderIndex = 0),
+				quizRequest(id = null, sentence = NEW_SENTENCE, answerWord = NEW_ANSWER, orderIndex = 1),
+			)),
+		)
+
+		// then
+		assertEquals(2, quizSet.quizzes.size)
+		val added = quizSet.quizzes.single { it.id == null }
+		assertEquals(NEW_SENTENCE, added.sentence)
+		assertEquals(NEW_ANSWER, added.answerWord)
+		assertEquals(1, added.orderIndex)
+		// 양방향 연관이 세팅돼야 cascade PERSIST 로 INSERT 될 때 quiz_set_id 가 채워진다
+		assertSame(quizSet, added.quizSet)
+		assertEquals(2, response.quizCount)
+	}
+
+	@Test
+	fun `퀴즈셋_수정시_요청에_없는_기존_퀴즈는_삭제한다`() {
+		// given
+		val quizSet = quizSet(user(), category(CATEGORY_ID_1, "토익"))
+		val kept = quiz(id = QUIZ_ID_1, orderIndex = 0)
+		val removed = quiz(id = QUIZ_ID_2, orderIndex = 1)
+		quizSet.addQuiz(kept)
+		quizSet.addQuiz(removed)
+
+		givenUpdatable(quizSet)
+
+		// when
+		val response = quizSetService.update(
+			QUIZ_SET_ID,
+			updateRequest(quizzes = listOf(quizRequest(id = QUIZ_ID_1, orderIndex = 0))),
+		)
+
+		// then
+		// 컬렉션에서 빠져야 orphanRemoval 로 커밋 시 DELETE 된다
+		assertEquals(listOf(QUIZ_ID_1), quizSet.quizzes.map { it.id })
+		assertEquals(1, quizSet.quizCount)
+		assertEquals(1, response.quizCount)
+	}
+
+
+	@Test
 	fun `존재하지_않는_퀴즈셋_수정시_QUIZ_SET_NOT_FOUND_예외를_던진다`() {
 		// given
-		every { quizSetRepository.findWithCategoryById(MISSING_QUIZ_SET_ID) } returns null
+		every { quizSetRepository.findWithCategoryAndQuizzesById(MISSING_QUIZ_SET_ID) } returns null
 
 		// when
 		val exception = assertFailsWith<QuizSetNotFoundException> {
@@ -166,6 +249,13 @@ class QuizSetServiceTest {
 		assertEquals(ErrorCode.QUIZ_SET_NOT_FOUND, exception.errorCode)
 		assertEquals(MISSING_QUIZ_SET_ID, exception.quizSetId)
 		verify(exactly = 0) { categoryRepository.findById(any()) }
+	}
+
+	/** 수정 성공 경로의 공통 목 — 퀴즈셋 조회, 제목 중복 없음, 새 카테고리 조회 */
+	private fun givenUpdatable(quizSet: QuizSet) {
+		every { quizSetRepository.findWithCategoryAndQuizzesById(QUIZ_SET_ID) } returns quizSet
+		every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, NEW_TITLE) } returns false
+		every { categoryRepository.findById(CATEGORY_ID_3) } returns Optional.of(category(CATEGORY_ID_3, "일상회화"))
 	}
 
 	private fun createRequest(
@@ -180,12 +270,37 @@ class QuizSetServiceTest {
 
 	private fun updateRequest(
 		categoryId: Long = CATEGORY_ID_3,
+		quizzes: List<QuizRequest> = emptyList(),
 	) = QuizSetUpdateRequest(
 		title = NEW_TITLE,
 		description = NEW_DESCRIPTION,
 		visibility = Visibility.PRIVATE,
 		categoryId = categoryId,
+		quizzes = quizzes,
 	)
+
+	private fun quizRequest(
+		id: Long?,
+		sentence: String = SENTENCE,
+		answerWord: String = ANSWER,
+		hint: String? = null,
+		orderIndex: Int,
+	) = QuizRequest(
+		id = id,
+		sentence = sentence,
+		answerWord = answerWord,
+		hint = hint,
+		orderIndex = orderIndex,
+	)
+
+	/** 영속 상태의 기존 퀴즈를 흉내 낸다. 실제 DB 가 없으므로 id 를 직접 넣는다. */
+	private fun quiz(id: Long, orderIndex: Int): Quiz =
+		Quiz(
+			sentence = SENTENCE,
+			answerWord = ANSWER,
+			orderIndex = orderIndex,
+			id = id,
+		)
 
 	private fun user(): User =
 		User(email = EMAIL,
@@ -230,5 +345,12 @@ class QuizSetServiceTest {
         private const val NEW_TITLE = "토플 빈출 구동사"
         private const val NEW_DESCRIPTION = "100선"
         private const val PROVIDER_ID = "122"
+		private const val QUIZ_ID_1 = 10L
+		private const val QUIZ_ID_2 = 11L
+		private const val SENTENCE = "She decided to {{}} the meeting until next week."
+		private const val ANSWER = "postpone"
+		private const val NEW_SENTENCE = "Please {{}} the attached document before Friday."
+		private const val NEW_ANSWER = "review"
+		private const val NEW_HINT = "검토하다"
 	}
 }

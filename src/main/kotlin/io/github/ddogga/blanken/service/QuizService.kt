@@ -29,7 +29,8 @@ class QuizService (
         val quiz = Quiz(
             sentence = request.sentence,
             answerWord = request.answerWord,
-            hint = request.hint
+            hint = request.hint,
+            orderIndex = request.orderIndex
         )
         quizSet.addQuiz(quiz)
         val newQuiz = quizRepository.save(quiz)
@@ -43,7 +44,7 @@ class QuizService (
 
         val quiz = findQuizById(quizId)
 
-        quiz.update(request.sentence, request.answerWord, request.hint)
+        quiz.update(request)
 
         return QuizResponse.from(quiz, quizSetId)
     }
@@ -73,8 +74,6 @@ class QuizService (
         }
 
     }
-
-
 
     private fun findQuizSetById(quizSetId : Long): QuizSet {
         return quizSetRepository.findByIdOrNull(quizSetId)

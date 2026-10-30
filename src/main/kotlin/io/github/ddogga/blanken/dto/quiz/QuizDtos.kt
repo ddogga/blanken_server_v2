@@ -63,6 +63,9 @@ data class QuizResponse(
     @field:Schema(description = "힌트 (선택)", example = "미루다, 연기하다", nullable = true)
     val hint: String?,
 
+    @field:Schema(description = "퀴즈 순서")
+    val orderIndex: Int
+
 ) {
     companion object {
         fun from(quiz: Quiz, quizSetId: Long): QuizResponse = QuizResponse(
@@ -70,7 +73,8 @@ data class QuizResponse(
             sentence = quiz.sentence,
             answerWord = quiz.answerWord,
             hint = quiz.hint,
-            quizSetId = quizSetId
+            quizSetId = quizSetId,
+            orderIndex = quiz.orderIndex
         )
     }
 }
