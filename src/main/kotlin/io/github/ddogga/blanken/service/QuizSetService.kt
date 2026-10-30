@@ -4,6 +4,7 @@ import io.github.ddogga.blanken.domain.quiz.Category
 import io.github.ddogga.blanken.domain.quiz.Quiz
 import io.github.ddogga.blanken.domain.quiz.QuizSet
 import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
+import io.github.ddogga.blanken.domain.quiz.Visibility
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetDetailResponse
@@ -11,6 +12,7 @@ import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.QuizNotFoundException
+import io.github.ddogga.blanken.exception.QuizSetAccessDeniedException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
@@ -98,6 +100,21 @@ class QuizSetService(
     ): PageResponse<QuizSetResponse> =
         PageResponse.from(quizSetRepository
             .searchQuizSet(keyword, categoryId, orderEnum, pageable))
+
+
+    fun getQuizSetDetail(
+        quizSetId: Long,
+        requestUserId: Long
+    ): QuizSetDetailResponse {
+        val quizSet = quizSetRepository.findWithCategoryAndQuizzesById(quizSetId)
+            ?: throw QuizSetNotFoundException(quizSetId)
+
+        if (quizSet.visibility == Visibility.PRIVATE && quizSet.owner.id != requestUserId) {
+            throw QuizSetAccessDeniedException(quizSetId)
+        }
+        return QuizSetDetailResponse.from(quizSet)
+    }
+
 
 
 

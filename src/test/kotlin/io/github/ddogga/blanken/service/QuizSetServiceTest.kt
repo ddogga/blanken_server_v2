@@ -13,6 +13,7 @@ import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetUpdateRequest
 import io.github.ddogga.blanken.exception.CategoryNotFoundException
 import io.github.ddogga.blanken.exception.ErrorCode
+import io.github.ddogga.blanken.exception.QuizSetAccessDeniedException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
@@ -232,6 +233,45 @@ class QuizSetServiceTest {
 		verify(exactly = 0) { categoryRepository.findById(any()) }
 	}
 
+	@Test
+	fun `공개_퀴즈셋은_소유자가_아니어도_퀴즈_목록과_함께_조회된다`() {
+		// given
+		val quizSet = quizSet(user(), category(CATEGORY_ID_1, "토익"))
+		quizSet.addQuiz(quiz(id = QUIZ_ID_1, orderIndex = 0))
+		quizSet.addQuiz(quiz(id = QUIZ_ID_2, orderIndex = 1))
+
+		every { quizSetRepository.findWithCategoryAndQuizzesById(QUIZ_SET_ID) } returns quizSet
+
+		// when
+		val response = quizSetService.getQuizSetDetail(QUIZ_SET_ID, OTHER_USER_ID)
+
+		// then
+		assertEquals(QUIZ_SET_ID, response.id)
+		assertEquals(TITLE, response.title)
+		assertEquals(2, response.quizCount)
+		assertEquals(listOf(QUIZ_ID_1, QUIZ_ID_2), response.quizzes.map { it.id })
+		assertEquals(listOf(ANSWER), response.quizzes.first().answers)
+	}
+
+	@Test
+	fun `다른_유저의_비공개_퀴즈셋_조회시_QUIZ_SET_ACCESS_DENIED_예외를_던진다`() {
+		// given
+		val quizSet = quizSet(user(), category(CATEGORY_ID_1, "토익")).apply {
+			visibility = Visibility.PRIVATE
+		}
+
+		every { quizSetRepository.findWithCategoryAndQuizzesById(QUIZ_SET_ID) } returns quizSet
+
+		// when
+		val exception = assertFailsWith<QuizSetAccessDeniedException> {
+			quizSetService.getQuizSetDetail(QUIZ_SET_ID, OTHER_USER_ID)
+		}
+
+		// then
+		assertEquals(ErrorCode.QUIZ_SET_ACCESS_DENIED, exception.errorCode)
+		assertEquals(QUIZ_SET_ID, exception.quizSetId)
+	}
+
 	/**
 	 * 수정 성공 경로의 공통 목 — 퀴즈셋 조회, 제목 중복 없음, 새 카테고리 조회, flush.
 	 * flush 는 목이라 실제 INSERT 가 일어나지 않는다 → 새로 추가한 퀴즈의 id 는 null 로 남는다.
@@ -322,6 +362,7 @@ class QuizSetServiceTest {
 		private const val QUIZ_SET_ID = 1L
 		private const val MISSING_QUIZ_SET_ID = 99L
 		private const val OWNER_ID = 1L
+		private const val OTHER_USER_ID = 2L
 		private const val CATEGORY_ID_1 = 1L
         private const val CATEGORY_ID_3 = 3L
 		private const val MISSING_CATEGORY_ID = 7L

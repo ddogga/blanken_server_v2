@@ -1,6 +1,7 @@
 package io.github.ddogga.blanken.controller
 
 import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
+import io.github.ddogga.blanken.dto.auth.AuthUser
 import io.github.ddogga.blanken.dto.common.PageResponse
 import io.github.ddogga.blanken.dto.quiz.QuizSetCreateRequest
 import io.github.ddogga.blanken.dto.quiz.QuizSetDetailResponse
@@ -15,6 +16,7 @@ import jakarta.validation.Valid
 import org.springframework.data.domain.Pageable
 import org.springframework.data.web.PageableDefault
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -60,6 +62,15 @@ class QuizSetController(
         pageable: Pageable,
     ): PageResponse<QuizSetResponse> =
         quizSetService.search(keyword, categoryId, orderEnum, pageable)
+
+    @Operation(summary = "퀴즈셋 단건 조회 - 퀴즈 목록 조회", description = "퀴즈셋과 퀴즈 목록을 조회합니다.")
+    @GetMapping("/{quizSetId}")
+    fun getQuizSetDetail(
+        @Parameter(description = "퀴즈셋 ID", example = "1")
+        @PathVariable quizSetId: Long,
+        @AuthenticationPrincipal authUser: AuthUser
+    ): QuizSetDetailResponse =
+        quizSetService.getQuizSetDetail(quizSetId, authUser.userId)
 
 
     @Operation(summary = "퀴즈셋 좋아요 추가", description = "퀴즈셋 좋아요 카운트를 추가합니다.")
