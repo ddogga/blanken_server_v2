@@ -30,7 +30,8 @@ class QuizService (
             sentence = request.sentence,
             answers = request.answers,
             hint = request.hint,
-            orderIndex = request.orderIndex
+            orderIndex = request.orderIndex,
+            translation = request.translation,
         )
         quizSet.addQuiz(quiz)
         val newQuiz = quizRepository.save(quiz)

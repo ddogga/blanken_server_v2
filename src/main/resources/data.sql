@@ -180,24 +180,24 @@ WHERE NOT EXISTS (SELECT 1 FROM quiz_set);
 --
 -- 모든 문장은 `Quiz.SENTENCE_PATTERN` 을 지킨다 — 빈칸 {{}} 이 정확히 하나, 그 외 중괄호 없음.
 -- ──────────────────────────────────────────────────────────────────────────
-WITH pool(n, sentence, answer_word, hint) AS (
+WITH pool(n, sentence, answer_word, hint, translation) AS (
     VALUES
-        ( 1, 'She decided to {{}} the meeting until next week.',          'postpone',  '미루다, 연기하다'),
-        ( 2, 'Please {{}} the attached document before Friday.',          'review',    '검토하다'),
-        ( 3, 'We need to {{}} the budget for the next quarter.',          'allocate',  '배정하다, 할당하다'),
-        ( 4, 'The manager will {{}} the new policy tomorrow.',            'announce',  '발표하다'),
-        ( 5, 'Could you {{}} me the sales report by noon?',               'send',      '보내다'),
-        ( 6, 'They failed to {{}} the deadline despite working late.',    'meet',      '(기한을) 맞추다'),
-        ( 7, 'He was asked to {{}} his opinion during the discussion.',   'express',   '표현하다'),
-        ( 8, 'The company plans to {{}} its business into Asia.',         'expand',    '확장하다'),
-        ( 9, 'I would like to {{}} a room for two nights.',               'reserve',   '예약하다'),
-        (10, 'Make sure to {{}} your passport at the counter.',           'present',   '제시하다'),
-        (11, 'The flight was {{}} due to bad weather.',                   'delayed',   '지연된'),
-        (12, 'Can you {{}} me how to get to the station?',                'tell',      '알려주다'),
-        (13, 'She managed to {{}} the problem on her own.',               'solve',     '해결하다'),
-        (14, 'We should {{}} this issue at the next meeting.',            'discuss',   '논의하다'),
-        (15, 'The report needs to be {{}} by the end of the day.',        'submitted', '제출된'),
-        (16, 'He decided to {{}} up early to catch the first train.',     'wake',      '일어나다')
+        ( 1, 'She decided to {{}} the meeting until next week.',          'postpone',  '미루다, 연기하다', '그녀는 회의를 다음 주로 미루기로 했다.'),
+        ( 2, 'Please {{}} the attached document before Friday.',          'review',    '검토하다', '금요일 전에 첨부 문서를 검토해 주세요.'),
+        ( 3, 'We need to {{}} the budget for the next quarter.',          'allocate',  '배정하다, 할당하다', '다음 분기 예산을 배정해야 한다.'),
+        ( 4, 'The manager will {{}} the new policy tomorrow.',            'announce',  '발표하다', '매니저가 내일 새 정책을 발표할 것이다.'),
+        ( 5, 'Could you {{}} me the sales report by noon?',               'send',      '보내다', '정오까지 판매 보고서를 보내 주실 수 있나요?'),
+        ( 6, 'They failed to {{}} the deadline despite working late.',    'meet',      '(기한을) 맞추다', '그들은 늦게까지 일했는데도 마감을 맞추지 못했다.'),
+        ( 7, 'He was asked to {{}} his opinion during the discussion.',   'express',   '표현하다', '그는 토론 중에 자신의 의견을 표현해 달라는 요청을 받았다.'),
+        ( 8, 'The company plans to {{}} its business into Asia.',         'expand',    '확장하다', '그 회사는 아시아로 사업을 확장할 계획이다.'),
+        ( 9, 'I would like to {{}} a room for two nights.',               'reserve',   '예약하다', '2박으로 방을 하나 예약하고 싶어요.'),
+        (10, 'Make sure to {{}} your passport at the counter.',           'present',   '제시하다', '카운터에서 반드시 여권을 제시하세요.'),
+        (11, 'The flight was {{}} due to bad weather.',                   'delayed',   '지연된', '악천후로 항공편이 지연되었다.'),
+        (12, 'Can you {{}} me how to get to the station?',                'tell',      '알려주다', '역에 어떻게 가는지 알려 주실 수 있나요?'),
+        (13, 'She managed to {{}} the problem on her own.',               'solve',     '해결하다', '그녀는 혼자 힘으로 그 문제를 해결해 냈다.'),
+        (14, 'We should {{}} this issue at the next meeting.',            'discuss',   '논의하다', '이 문제는 다음 회의에서 논의해야 한다.'),
+        (15, 'The report needs to be {{}} by the end of the day.',        'submitted', '제출된', '보고서는 오늘 안에 제출되어야 한다.'),
+        (16, 'He decided to {{}} up early to catch the first train.',     'wake',      '일어나다', '그는 첫 기차를 타려고 일찍 일어나기로 했다.')
 ),
 numbered AS (
     SELECT id,
@@ -205,8 +205,8 @@ numbered AS (
            (row_number() OVER (ORDER BY id) - 1)::int AS idx
     FROM quiz_set
 )
-INSERT INTO quiz (quiz_set_id, sentence, answer_word, hint, order_index, created_at, updated_at)
-SELECT s.id, p.sentence, p.answer_word, p.hint, g.n - 1, now(), now()
+INSERT INTO quiz (quiz_set_id, sentence, answers, hint, order_index, translation, created_at, updated_at)
+SELECT s.id, p.sentence, ARRAY[p.answer_word], p.hint, g.n - 1, p.translation, now(), now()
 FROM numbered s
 CROSS JOIN LATERAL generate_series(1, s.quiz_count) AS g(n)
 JOIN pool p ON p.n = ((s.idx + g.n - 1) % 16) + 1

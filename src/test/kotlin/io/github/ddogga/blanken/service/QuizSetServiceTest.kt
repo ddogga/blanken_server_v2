@@ -176,7 +176,7 @@ class QuizSetServiceTest {
 		val response = quizSetService.update(
 			QUIZ_SET_ID,
 			updateRequest(quizzes = listOf(
-				quizRequest(id = QUIZ_ID_1, sentence = NEW_SENTENCE, answers = listOf(NEW_ANSWER), hint = NEW_HINT, orderIndex = 0),
+				quizRequest(id = QUIZ_ID_1, sentence = NEW_SENTENCE, answers = listOf(NEW_ANSWER), hint = NEW_HINT, orderIndex = 0, translation = NEW_TRANSLATION),
 			)),
 		)
 
@@ -187,6 +187,7 @@ class QuizSetServiceTest {
 		assertEquals(NEW_SENTENCE, existing.sentence)
 		assertEquals(listOf(NEW_ANSWER), existing.answers)
 		assertEquals(NEW_HINT, existing.hint)
+		assertEquals(NEW_TRANSLATION, existing.translation)
 		assertEquals(1, response.quizCount)
 	}
 
@@ -269,12 +270,14 @@ class QuizSetServiceTest {
 		answers: List<String> = listOf(ANSWER),
 		hint: String? = null,
 		orderIndex: Int,
+		translation: String = TRANSLATION,
 	) = QuizRequest(
 		id = id,
 		sentence = sentence,
 		answers = answers,
 		hint = hint,
 		orderIndex = orderIndex,
+		translation = translation,
 	)
 
 	/** 영속 상태의 기존 퀴즈를 흉내 낸다. 실제 DB 가 없으므로 id 를 직접 넣는다. */
@@ -283,6 +286,7 @@ class QuizSetServiceTest {
 			sentence = SENTENCE,
 			answers = listOf(ANSWER),
 			orderIndex = orderIndex,
+			translation = TRANSLATION,
 			id = id,
 		)
 
@@ -336,5 +340,7 @@ class QuizSetServiceTest {
 		private const val NEW_SENTENCE = "Please {{}} the attached document before Friday."
 		private const val NEW_ANSWER = "review"
 		private const val NEW_HINT = "검토하다"
+		private const val TRANSLATION = "그녀는 회의를 다음 주로 미루기로 했다."
+		private const val NEW_TRANSLATION = "금요일 전에 첨부 문서를 검토해 주세요."
 	}
 }

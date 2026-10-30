@@ -162,12 +162,14 @@ class StudyHistoryServiceTest(
                 answers = listOf("postpone"),
                 hint = "미루다, 연기하다",
                 orderIndex = 0,
+                translation = "그녀는 회의를 다음 주로 미루기로 했다.",
             ),
             Quiz(
                 sentence = "Please {{}} the attached document before Friday.",
                 answers = listOf("review"),
                 hint = "검토하다",
                 orderIndex = 1,
+                translation = "금요일 전에 첨부 문서를 검토해 주세요.",
             ),
         )
 

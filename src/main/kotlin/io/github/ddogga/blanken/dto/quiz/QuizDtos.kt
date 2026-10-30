@@ -38,6 +38,10 @@ data class QuizRequest(
     @field:NotNull(message = "퀴즈 순서는 필수 입니다.")
     val orderIndex: Int,
 
+    @field:Schema(description = "문장 번역", example = "그녀는 회의를 다음 주로 미루기로 했다.")
+    @field:Size(max = 500, message = "번역 문장은 500자를 넘을 수 없습니다.")
+    val translation: String,
+
 )
 
 
@@ -63,7 +67,10 @@ data class QuizResponse(
     val hint: String?,
 
     @field:Schema(description = "퀴즈 순서")
-    val orderIndex: Int
+    val orderIndex: Int,
+
+    @field:Schema(description = "문장 번역", example = "그녀는 회의를 다음 주로 미루기로 했다.")
+    val translation: String,
 
 ) {
     companion object {
@@ -73,7 +80,8 @@ data class QuizResponse(
             answers = quiz.answers,
             hint = quiz.hint,
             quizSetId = quizSetId,
-            orderIndex = quiz.orderIndex
+            orderIndex = quiz.orderIndex,
+            translation = quiz.translation,
         )
     }
 }

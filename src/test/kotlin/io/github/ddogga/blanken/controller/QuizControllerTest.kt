@@ -50,6 +50,7 @@ class QuizControllerTest(
             jsonPath("$.sentence") { value(QUIZ_SENTENCE) }
             jsonPath("$.answers[0]") { value(QUIZ_ANSWER_WORD) }
             jsonPath("$.hint") { value(QUIZ_HINT) }
+            jsonPath("$.translation") { value(QUIZ_TRANSLATION) }
         }
     }
 
@@ -196,6 +197,7 @@ class QuizControllerTest(
         sentence: String = QUIZ_SENTENCE,
         answers: List<String> = listOf(QUIZ_ANSWER_WORD),
         hint: String? = QUIZ_HINT,
+        translation: String = QUIZ_TRANSLATION,
     ): QuizResponse = QuizResponse(
         id = QUIZ_ID,
         quizSetId = quizSetId,
@@ -203,6 +205,7 @@ class QuizControllerTest(
         answers = answers,
         hint = hint,
         orderIndex = 0,
+        translation = translation,
     )
 
     companion object {
@@ -214,12 +217,13 @@ class QuizControllerTest(
         private const val QUIZ_HINT = "미루다, 연기하다"
         private const val UPDATED_SENTENCE = "He tried to {{}} the deadline by two days."
         private const val UPDATED_ANSWER_WORD = "extend"
+        private const val QUIZ_TRANSLATION = "그녀는 회의를 다음 주로 미루기로 했다."
 
         private const val REQUEST_BODY =
-            """{"sentence":"She decided to {{}} the meeting until next week.","answers":["postpone"],"hint":"미루다, 연기하다","orderIndex":0}"""
+            """{"sentence":"She decided to {{}} the meeting until next week.","answers":["postpone"],"hint":"미루다, 연기하다","orderIndex":0,"translation":"그녀는 회의를 다음 주로 미루기로 했다."}"""
         private const val BLANK_MISSING_REQUEST_BODY =
-            """{"sentence":"She decided to postpone the meeting until next week.","answers":["postpone"],"orderIndex":0}"""
+            """{"sentence":"She decided to postpone the meeting until next week.","answers":["postpone"],"orderIndex":0,"translation":"그녀는 회의를 다음 주로 미루기로 했다."}"""
         private const val UPDATE_REQUEST_BODY =
-            """{"sentence":"He tried to {{}} the deadline by two days.","answers":["extend"],"orderIndex":0}"""
+            """{"sentence":"He tried to {{}} the deadline by two days.","answers":["extend"],"orderIndex":0,"translation":"그는 마감을 이틀 연장하려고 했다."}"""
     }
 }

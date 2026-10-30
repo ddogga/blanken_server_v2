@@ -27,8 +27,11 @@ class Quiz(
 	@Column(name = "hint", length = 200)
 	var hint: String? = null,
 
-    @Column(name = "order_index")
+    @Column(name = "order_index", nullable = false)
     var orderIndex: Int, // 0부터 카운트
+
+    @Column(name = "translation", nullable = false, length = 500)
+    var translation: String,
 
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -56,6 +59,7 @@ class Quiz(
 		this.answers = newQuiz.answers
 		this.hint = newQuiz.hint
         this.orderIndex = newQuiz.orderIndex
+        this.translation = newQuiz.translation
 	}
 
     fun updateQuizSet(newQuizSet : QuizSet) {

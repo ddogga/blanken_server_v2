@@ -79,7 +79,8 @@ class QuizSetService(
                     sentence = dto.sentence,
                     answers = dto.answers,
                     hint = dto.hint,
-                    orderIndex = dto.orderIndex
+                    orderIndex = dto.orderIndex,
+                    translation = dto.translation,
                 ))
             }
         }

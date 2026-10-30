@@ -44,7 +44,8 @@ class QuizServiceTest {
                 sentence = QUIZ_SENTENCE,
                 answers = listOf(QUIZ_ANSWER_WORD),
                 hint = QUIZ_HINT,
-                orderIndex = QUIZ_ORDER_INDEX
+                orderIndex = QUIZ_ORDER_INDEX,
+                translation = QUIZ_TRANSLATION,
             )
         )
 
@@ -52,6 +53,7 @@ class QuizServiceTest {
         assertEquals(QUIZ_SENTENCE, response.sentence)
         assertEquals(listOf(QUIZ_ANSWER_WORD), response.answers)
         assertEquals(QUIZ_HINT, response.hint)
+        assertEquals(QUIZ_TRANSLATION, response.translation)
         assertEquals(QUIZ_SET_ID, response.quizSetId)
 
     }
@@ -71,6 +73,7 @@ class QuizServiceTest {
         // then
         assertEquals(UPDATED_SENTENCE, response.sentence)
         assertEquals(listOf(UPDATED_ANSWER_WORD), response.answers)
+        assertEquals(UPDATED_TRANSLATION, response.translation)
     }
 
     @Test
@@ -97,7 +100,8 @@ class QuizServiceTest {
             sentence = UPDATED_SENTENCE,
             answers = listOf(UPDATED_ANSWER_WORD),
             hint = QUIZ_HINT,
-            orderIndex = QUIZ_ORDER_INDEX
+            orderIndex = QUIZ_ORDER_INDEX,
+            translation = UPDATED_TRANSLATION,
         )
 
 
@@ -132,6 +136,7 @@ class QuizServiceTest {
             answers = listOf(QUIZ_ANSWER_WORD),
             hint = QUIZ_HINT,
             orderIndex = QUIZ_ORDER_INDEX,
+            translation = QUIZ_TRANSLATION,
             id = QUIZ_ID,
         ).apply {
             this.quizSet = quizSet
@@ -153,6 +158,8 @@ class QuizServiceTest {
         private const val QUIZ_HINT = "미루다, 연기하다"
         private const val UPDATED_SENTENCE = "He tried to {{}} the deadline by two days."
         private const val UPDATED_ANSWER_WORD = "extend"
+        private const val QUIZ_TRANSLATION = "그녀는 회의를 다음 주로 미루기로 했다."
+        private const val UPDATED_TRANSLATION = "그는 마감을 이틀 연장하려고 했다."
         private const val NEW_QUIZ_SET_ID = 2L
         private const val PROVIDER_ID = "122"
         private val CREATED_AT: Instant = Instant.parse("2026-01-02T00:00:00Z")

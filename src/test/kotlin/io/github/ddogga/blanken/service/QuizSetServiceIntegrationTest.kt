@@ -52,6 +52,7 @@ class QuizSetServiceIntegrationTest(
 				answers = listOf(NEW_ANSWER),
 				hint = null,
 				orderIndex = existing.size,
+				translation = NEW_TRANSLATION,
 			),
 		)
 
@@ -64,6 +65,7 @@ class QuizSetServiceIntegrationTest(
 		val added = response.quizzes.single { it.sentence == NEW_SENTENCE }
 		assertNotNull(added.id)                         // flush 로 INSERT 되어 IDENTITY id 를 받았다
 		assertEquals(listOf(NEW_ANSWER), added.answers)
+		assertEquals(NEW_TRANSLATION, added.translation)
 		assertEquals(existing.size, added.orderIndex)
 		assertEquals(response.quizzes.map { it.orderIndex }.sorted(), response.quizzes.map { it.orderIndex })
 
@@ -90,10 +92,12 @@ class QuizSetServiceIntegrationTest(
 		answers = answers,
 		hint = hint,
 		orderIndex = orderIndex,
+		translation = translation,
 	)
 
 	companion object {
 		private const val NEW_SENTENCE = "Integration {{}} sentence added on update."
 		private const val NEW_ANSWER = "test"
+		private const val NEW_TRANSLATION = "수정 시 추가된 통합 테스트 문장."
 	}
 }
