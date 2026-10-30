@@ -215,10 +215,10 @@ class QuizControllerTest(
         private const val UPDATED_ANSWER_WORD = "extend"
 
         private const val REQUEST_BODY =
-            """{"sentence":"She decided to {{}} the meeting until next week.","answerWord":"postpone","hint":"미루다, 연기하다"}"""
+            """{"sentence":"She decided to {{}} the meeting until next week.","answerWord":"postpone","hint":"미루다, 연기하다","orderIndex":0}"""
         private const val BLANK_MISSING_REQUEST_BODY =
-            """{"sentence":"She decided to postpone the meeting until next week.","answerWord":"postpone"}"""
+            """{"sentence":"She decided to postpone the meeting until next week.","answerWord":"postpone","orderIndex":0}"""
         private const val UPDATE_REQUEST_BODY =
-            """{"sentence":"He tried to {{}} the deadline by two days.","answerWord":"extend"}"""
+            """{"sentence":"He tried to {{}} the deadline by two days.","answerWord":"extend","orderIndex":0}"""
     }
 }

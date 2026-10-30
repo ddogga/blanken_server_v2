@@ -263,7 +263,7 @@ class QuizSetControllerTest(
 		private const val REQUEST_BODY =
 			"""{"ownerId":1,"title":"토익 빈출 동사","description":"30선","visibility":"PUBLIC","categoryId":1}"""
 		private const val UPDATE_REQUEST_BODY =
-			"""{"title":"토플 빈출 구동사","description":"100선","visibility":"PRIVATE","categoryId":3}"""
+			"""{"title":"토플 빈출 구동사","description":"100선","visibility":"PRIVATE","categoryId":3,"quizzes":[]}"""
 		private val CREATED_AT: Instant = Instant.parse("2026-09-02T00:00:00Z")
         private const val KEYWORD = "토익"
         private const val SEARCH_CATEGORY = 1L

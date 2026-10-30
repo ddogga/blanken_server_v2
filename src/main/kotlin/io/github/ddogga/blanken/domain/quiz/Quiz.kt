@@ -1,6 +1,7 @@
 package io.github.ddogga.blanken.domain.quiz
 
 import io.github.ddogga.blanken.domain.BaseTimeEntity
+import io.github.ddogga.blanken.dto.quiz.QuizRequest
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -24,6 +25,9 @@ class Quiz(
 	@Column(name = "hint", length = 200)
 	var hint: String? = null,
 
+    @Column(name = "order_index")
+    var orderIndex: Int, // 0부터 카운트
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id")
@@ -39,11 +43,12 @@ class Quiz(
 		validateSentence(sentence)
 	}
 
-	fun update(sentence: String, answerWord: String, hint: String?) {
-		validateSentence(sentence)
-		this.sentence = sentence
-		this.answerWord = answerWord
-		this.hint = hint
+	fun update(newQuiz: QuizRequest) {
+		validateSentence(newQuiz.sentence)
+		this.sentence = newQuiz.sentence
+		this.answerWord = newQuiz.answerWord
+		this.hint = newQuiz.hint
+        this.orderIndex = newQuiz.orderIndex
 	}
 
     fun updateQuizSet(newQuizSet : QuizSet) {

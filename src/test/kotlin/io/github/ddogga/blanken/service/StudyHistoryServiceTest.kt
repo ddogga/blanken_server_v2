@@ -161,11 +161,13 @@ class StudyHistoryServiceTest(
                 sentence = "She decided to {{}} the meeting until next week.",
                 answerWord = "postpone",
                 hint = "미루다, 연기하다",
+                orderIndex = 0,
             ),
             Quiz(
                 sentence = "Please {{}} the attached document before Friday.",
                 answerWord = "review",
                 hint = "검토하다",
+                orderIndex = 1,
             ),
         )
 

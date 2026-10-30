@@ -68,7 +68,7 @@ class QuizSet(
 	@OneToMany(mappedBy = "quizSet", cascade = [CascadeType.ALL], orphanRemoval = true)
 	private val mutableQuizzes: MutableList<Quiz> = mutableListOf()
 
-	val quizzes: List<Quiz> get() = mutableQuizzes
+	val quizzes: List<Quiz> get() = mutableQuizzes.sortedBy { it.orderIndex }
 
 	/** 영속 상태에서는 cascade PERSIST 로 커밋 시 INSERT 된다. 별도 save 불필요. */
 	fun addQuiz(quiz: Quiz) {

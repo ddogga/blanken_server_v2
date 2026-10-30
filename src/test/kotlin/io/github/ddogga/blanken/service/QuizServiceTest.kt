@@ -40,9 +40,11 @@ class QuizServiceTest {
         val response = quizService.create(
             QUIZ_SET_ID,
             QuizRequest(
+                null,
                 sentence = QUIZ_SENTENCE,
                 answerWord = QUIZ_ANSWER_WORD,
-                hint = QUIZ_HINT
+                hint = QUIZ_HINT,
+                orderIndex = QUIZ_ORDER_INDEX
             )
         )
 
@@ -91,9 +93,11 @@ class QuizServiceTest {
 
     private fun updateRequest()
         = QuizRequest(
+        null,
             sentence = UPDATED_SENTENCE,
             answerWord = UPDATED_ANSWER_WORD,
-            hint = QUIZ_HINT
+            hint = QUIZ_HINT,
+            orderIndex = QUIZ_ORDER_INDEX
         )
 
 
@@ -127,7 +131,8 @@ class QuizServiceTest {
             sentence = QUIZ_SENTENCE,
             answerWord = QUIZ_ANSWER_WORD,
             hint = QUIZ_HINT,
-            id = QUIZ_ID
+            orderIndex = QUIZ_ORDER_INDEX,
+            id = QUIZ_ID,
         ).apply {
             this.quizSet = quizSet
             createdAt = CREATED_AT
@@ -151,6 +156,7 @@ class QuizServiceTest {
         private const val NEW_QUIZ_SET_ID = 2L
         private const val PROVIDER_ID = "122"
         private val CREATED_AT: Instant = Instant.parse("2026-01-02T00:00:00Z")
+        private const val QUIZ_ORDER_INDEX = 1
 
     }
 
