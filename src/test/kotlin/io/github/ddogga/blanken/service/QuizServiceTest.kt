@@ -42,7 +42,7 @@ class QuizServiceTest {
             QuizRequest(
                 null,
                 sentence = QUIZ_SENTENCE,
-                answerWord = QUIZ_ANSWER_WORD,
+                answers = listOf(QUIZ_ANSWER_WORD),
                 hint = QUIZ_HINT,
                 orderIndex = QUIZ_ORDER_INDEX
             )
@@ -50,7 +50,7 @@ class QuizServiceTest {
 
         // then
         assertEquals(QUIZ_SENTENCE, response.sentence)
-        assertEquals(QUIZ_ANSWER_WORD, response.answerWord)
+        assertEquals(listOf(QUIZ_ANSWER_WORD), response.answers)
         assertEquals(QUIZ_HINT, response.hint)
         assertEquals(QUIZ_SET_ID, response.quizSetId)
 
@@ -70,7 +70,7 @@ class QuizServiceTest {
 
         // then
         assertEquals(UPDATED_SENTENCE, response.sentence)
-        assertEquals(UPDATED_ANSWER_WORD, response.answerWord)
+        assertEquals(listOf(UPDATED_ANSWER_WORD), response.answers)
     }
 
     @Test
@@ -95,7 +95,7 @@ class QuizServiceTest {
         = QuizRequest(
         null,
             sentence = UPDATED_SENTENCE,
-            answerWord = UPDATED_ANSWER_WORD,
+            answers = listOf(UPDATED_ANSWER_WORD),
             hint = QUIZ_HINT,
             orderIndex = QUIZ_ORDER_INDEX
         )
@@ -129,7 +129,7 @@ class QuizServiceTest {
     private fun quiz(quizSet: QuizSet): Quiz =
         Quiz(
             sentence = QUIZ_SENTENCE,
-            answerWord = QUIZ_ANSWER_WORD,
+            answers = listOf(QUIZ_ANSWER_WORD),
             hint = QUIZ_HINT,
             orderIndex = QUIZ_ORDER_INDEX,
             id = QUIZ_ID,

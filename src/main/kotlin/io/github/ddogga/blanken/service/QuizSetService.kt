@@ -77,7 +77,7 @@ class QuizSetService(
             } else {
                 quizSet.addQuiz(Quiz(
                     sentence = dto.sentence,
-                    answerWord = dto.answerWord,
+                    answers = dto.answers,
                     hint = dto.hint,
                     orderIndex = dto.orderIndex
                 ))

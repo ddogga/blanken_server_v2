@@ -28,7 +28,7 @@ class QuizService (
         val quizSet = findQuizSetById(quizSetId)
         val quiz = Quiz(
             sentence = request.sentence,
-            answerWord = request.answerWord,
+            answers = request.answers,
             hint = request.hint,
             orderIndex = request.orderIndex
         )

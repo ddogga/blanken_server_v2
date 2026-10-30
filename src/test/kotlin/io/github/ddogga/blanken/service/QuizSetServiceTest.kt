@@ -176,7 +176,7 @@ class QuizSetServiceTest {
 		val response = quizSetService.update(
 			QUIZ_SET_ID,
 			updateRequest(quizzes = listOf(
-				quizRequest(id = QUIZ_ID_1, sentence = NEW_SENTENCE, answerWord = NEW_ANSWER, hint = NEW_HINT, orderIndex = 0),
+				quizRequest(id = QUIZ_ID_1, sentence = NEW_SENTENCE, answers = listOf(NEW_ANSWER), hint = NEW_HINT, orderIndex = 0),
 			)),
 		)
 
@@ -185,7 +185,7 @@ class QuizSetServiceTest {
 		assertEquals(1, quizSet.quizzes.size)
 		assertSame(existing, quizSet.quizzes.single())
 		assertEquals(NEW_SENTENCE, existing.sentence)
-		assertEquals(NEW_ANSWER, existing.answerWord)
+		assertEquals(listOf(NEW_ANSWER), existing.answers)
 		assertEquals(NEW_HINT, existing.hint)
 		assertEquals(1, response.quizCount)
 	}
@@ -266,13 +266,13 @@ class QuizSetServiceTest {
 	private fun quizRequest(
 		id: Long?,
 		sentence: String = SENTENCE,
-		answerWord: String = ANSWER,
+		answers: List<String> = listOf(ANSWER),
 		hint: String? = null,
 		orderIndex: Int,
 	) = QuizRequest(
 		id = id,
 		sentence = sentence,
-		answerWord = answerWord,
+		answers = answers,
 		hint = hint,
 		orderIndex = orderIndex,
 	)
@@ -281,7 +281,7 @@ class QuizSetServiceTest {
 	private fun quiz(id: Long, orderIndex: Int): Quiz =
 		Quiz(
 			sentence = SENTENCE,
-			answerWord = ANSWER,
+			answers = listOf(ANSWER),
 			orderIndex = orderIndex,
 			id = id,
 		)

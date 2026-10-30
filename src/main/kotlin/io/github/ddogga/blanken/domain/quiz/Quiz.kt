@@ -11,6 +11,9 @@ import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import org.hibernate.annotations.JdbcTypeCode
+import org.hibernate.type.SqlTypes
+
 
 @Entity
 @Table(name = "quiz")
@@ -19,8 +22,7 @@ class Quiz(
 	@Column(name = "sentence", nullable = false, length = 500)
 	var sentence: String,
 
-	@Column(name = "answer_word", nullable = false, length = 100)
-	var answerWord: String,
+	answers: List<String>,
 
 	@Column(name = "hint", length = 200)
 	var hint: String? = null,
@@ -35,18 +37,23 @@ class Quiz(
 
 ) : BaseTimeEntity() {
 
+	@JdbcTypeCode(SqlTypes.ARRAY)
+	@Column(name = "answers", nullable = false, columnDefinition = "text[]")
+	var answers: List<String> = answers
+		protected set
+
 	@ManyToOne(fetch = FetchType.LAZY, optional = false)
 	@JoinColumn(name = "quiz_set_id", nullable = false)
 	lateinit var quizSet: QuizSet
 
 	init {
-		validateSentence(sentence)
+		validate(sentence, answers)
 	}
 
 	fun update(newQuiz: QuizRequest) {
-		validateSentence(newQuiz.sentence)
+		validate(newQuiz.sentence, newQuiz.answers)
 		this.sentence = newQuiz.sentence
-		this.answerWord = newQuiz.answerWord
+		this.answers = newQuiz.answers
 		this.hint = newQuiz.hint
         this.orderIndex = newQuiz.orderIndex
 	}
@@ -61,13 +68,28 @@ class Quiz(
 	companion object {
 
 		const val BLANK = "{{}}"
-		const val SENTENCE_PATTERN = "^[^{}]*\\{\\{\\}\\}[^{}]*$"
-		const val SENTENCE_RULE_MESSAGE = "문장에는 빈칸 {{}} 이 정확히 하나 있어야 합니다."
+
+		/** 빈칸이 하나 이상이여야 함. {{}} -> 빈칸 표시 */
+		const val SENTENCE_PATTERN = "^[^{}]*(\\{\\{\\}\\}[^{}]*)+$"
+		const val SENTENCE_RULE_MESSAGE = "문장에는 빈칸 {{}} 이 하나 이상 있어야 합니다."
+		const val ANSWER_COUNT_RULE_MESSAGE = "정답 개수는 문장의 단어 수보다 적어야 합니다."
+		const val ANSWER_WORD_RULE_MESSAGE = "정답에는 공백이 들어갈 수 없습니다."
 
 		private val sentenceRegex = Regex(SENTENCE_PATTERN)
+		private val whitespaceRegex = Regex("\\s+")
 
-		private fun validateSentence(sentence: String) {
+		/**
+		 * - 문장: 빈칸이 하나 이상, 빈칸 외의 중괄호 없음
+		 * - 정답: 각각 공백이 없을 것
+		 * - 정답 개수: 공백으로 나눈 문장의 단어 수보다 반드시 적을 것
+		 */
+		private fun validate(sentence: String, answers: List<String>) {
 			require(sentenceRegex.matches(sentence)) { SENTENCE_RULE_MESSAGE }
+			require(answers.none { whitespaceRegex.containsMatchIn(it) }) { ANSWER_WORD_RULE_MESSAGE }
+			require(answers.size < wordCount(sentence)) { ANSWER_COUNT_RULE_MESSAGE }
 		}
+
+		private fun wordCount(sentence: String): Int =
+			sentence.trim().split(whitespaceRegex).count { it.isNotEmpty() }
 	}
 }

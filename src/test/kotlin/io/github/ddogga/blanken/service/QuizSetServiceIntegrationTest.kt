@@ -49,7 +49,7 @@ class QuizSetServiceIntegrationTest(
 			quizzes = existing.map { it.toRequest() } + QuizRequest(
 				id = null,
 				sentence = NEW_SENTENCE,
-				answerWord = NEW_ANSWER,
+				answers = listOf(NEW_ANSWER),
 				hint = null,
 				orderIndex = existing.size,
 			),
@@ -63,7 +63,7 @@ class QuizSetServiceIntegrationTest(
 		assertEquals(existing.size + 1, response.quizzes.size)
 		val added = response.quizzes.single { it.sentence == NEW_SENTENCE }
 		assertNotNull(added.id)                         // flush 로 INSERT 되어 IDENTITY id 를 받았다
-		assertEquals(NEW_ANSWER, added.answerWord)
+		assertEquals(listOf(NEW_ANSWER), added.answers)
 		assertEquals(existing.size, added.orderIndex)
 		assertEquals(response.quizzes.map { it.orderIndex }.sorted(), response.quizzes.map { it.orderIndex })
 
@@ -87,7 +87,7 @@ class QuizSetServiceIntegrationTest(
 	private fun Quiz.toRequest() = QuizRequest(
 		id = id,
 		sentence = sentence,
-		answerWord = answerWord,
+		answers = answers,
 		hint = hint,
 		orderIndex = orderIndex,
 	)

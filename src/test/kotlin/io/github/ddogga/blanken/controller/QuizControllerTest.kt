@@ -48,7 +48,7 @@ class QuizControllerTest(
             jsonPath("$.id") { value(QUIZ_ID) }
             jsonPath("$.quizSetId") { value(QUIZ_SET_ID) }
             jsonPath("$.sentence") { value(QUIZ_SENTENCE) }
-            jsonPath("$.answerWord") { value(QUIZ_ANSWER_WORD) }
+            jsonPath("$.answers[0]") { value(QUIZ_ANSWER_WORD) }
             jsonPath("$.hint") { value(QUIZ_HINT) }
         }
     }
@@ -89,7 +89,7 @@ class QuizControllerTest(
         // given
         every { quizService.update(QUIZ_ID, QUIZ_SET_ID, any()) } returns quizResponse(
             sentence = UPDATED_SENTENCE,
-            answerWord = UPDATED_ANSWER_WORD,
+            answers = listOf(UPDATED_ANSWER_WORD),
             hint = null,
         )
 
@@ -102,7 +102,7 @@ class QuizControllerTest(
             jsonPath("$.id") { value(QUIZ_ID) }
             jsonPath("$.quizSetId") { value(QUIZ_SET_ID) }
             jsonPath("$.sentence") { value(UPDATED_SENTENCE) }
-            jsonPath("$.answerWord") { value(UPDATED_ANSWER_WORD) }
+            jsonPath("$.answers[0]") { value(UPDATED_ANSWER_WORD) }
             // 힌트는 선택 항목이라 비우는 수정도 가능하다.
             jsonPath("$.hint") { value(null) }
         }
@@ -194,13 +194,13 @@ class QuizControllerTest(
     private fun quizResponse(
         quizSetId: Long = QUIZ_SET_ID,
         sentence: String = QUIZ_SENTENCE,
-        answerWord: String = QUIZ_ANSWER_WORD,
+        answers: List<String> = listOf(QUIZ_ANSWER_WORD),
         hint: String? = QUIZ_HINT,
     ): QuizResponse = QuizResponse(
         id = QUIZ_ID,
         quizSetId = quizSetId,
         sentence = sentence,
-        answerWord = answerWord,
+        answers = answers,
         hint = hint,
         orderIndex = 0,
     )
@@ -216,10 +216,10 @@ class QuizControllerTest(
         private const val UPDATED_ANSWER_WORD = "extend"
 
         private const val REQUEST_BODY =
-            """{"sentence":"She decided to {{}} the meeting until next week.","answerWord":"postpone","hint":"미루다, 연기하다","orderIndex":0}"""
+            """{"sentence":"She decided to {{}} the meeting until next week.","answers":["postpone"],"hint":"미루다, 연기하다","orderIndex":0}"""
         private const val BLANK_MISSING_REQUEST_BODY =
-            """{"sentence":"She decided to postpone the meeting until next week.","answerWord":"postpone","orderIndex":0}"""
+            """{"sentence":"She decided to postpone the meeting until next week.","answers":["postpone"],"orderIndex":0}"""
         private const val UPDATE_REQUEST_BODY =
-            """{"sentence":"He tried to {{}} the deadline by two days.","answerWord":"extend","orderIndex":0}"""
+            """{"sentence":"He tried to {{}} the deadline by two days.","answers":["extend"],"orderIndex":0}"""
     }
 }
