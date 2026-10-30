@@ -19,7 +19,9 @@ import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.CategoryRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
 import io.github.ddogga.blanken.repository.UserRepository
+import io.mockk.Runs
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
@@ -35,6 +37,11 @@ import kotlin.test.assertSame
  *
  * 저장소는 목으로 끊고 서비스가 책임지는 분기만 본다 —
  * 소유자/카테고리/퀴즈셋 조회 실패의 도메인 예외 변환, 그리고 조회한 카테고리를 퀴즈셋에 연결·교체하는 것.
+ *
+ * **수정 시 새 퀴즈 추가는 여기서 검증하지 않는다** → `QuizSetServiceIntegrationTest`.
+ * 서비스가 flush 로 INSERT 를 실행해 IDENTITY id 를 받은 뒤 응답을 만드는데, 목 저장소의 flush 는
+ * INSERT 를 하지 않아 새 퀴즈의 id 가 null 로 남고 응답 변환(`requireNotNull`)에서 실패한다.
+ * "flush 하면 id 가 채워진다" 는 Hibernate·DB 의 동작이라 실제 DB 로만 검증할 수 있다.
  */
 class QuizSetServiceTest {
 
@@ -143,6 +150,7 @@ class QuizSetServiceTest {
         every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, NEW_TITLE) } returns false
         every { categoryRepository.findById(CATEGORY_ID_3) } returns Optional.of(newCategory)
         every { quizSetRepository.findWithCategoryAndQuizzesById(QUIZ_SET_ID) } returns quizSet(owner, category)
+        every { quizSetRepository.flush() } just Runs
 
         // when
         val response = quizSetService.update(QUIZ_SET_ID, updateRequest())
@@ -180,34 +188,6 @@ class QuizSetServiceTest {
 		assertEquals(NEW_ANSWER, existing.answerWord)
 		assertEquals(NEW_HINT, existing.hint)
 		assertEquals(1, response.quizCount)
-	}
-
-	@Test
-	fun `퀴즈셋_수정시_id가_없는_퀴즈는_새로_추가한다`() {
-		// given
-		val quizSet = quizSet(user(), category(CATEGORY_ID_1, "토익"))
-		quizSet.addQuiz(quiz(id = QUIZ_ID_1, orderIndex = 0))
-
-		givenUpdatable(quizSet)
-
-		// when
-		val response = quizSetService.update(
-			QUIZ_SET_ID,
-			updateRequest(quizzes = listOf(
-				quizRequest(id = QUIZ_ID_1, orderIndex = 0),
-				quizRequest(id = null, sentence = NEW_SENTENCE, answerWord = NEW_ANSWER, orderIndex = 1),
-			)),
-		)
-
-		// then
-		assertEquals(2, quizSet.quizzes.size)
-		val added = quizSet.quizzes.single { it.id == null }
-		assertEquals(NEW_SENTENCE, added.sentence)
-		assertEquals(NEW_ANSWER, added.answerWord)
-		assertEquals(1, added.orderIndex)
-		// 양방향 연관이 세팅돼야 cascade PERSIST 로 INSERT 될 때 quiz_set_id 가 채워진다
-		assertSame(quizSet, added.quizSet)
-		assertEquals(2, response.quizCount)
 	}
 
 	@Test
@@ -251,11 +231,15 @@ class QuizSetServiceTest {
 		verify(exactly = 0) { categoryRepository.findById(any()) }
 	}
 
-	/** 수정 성공 경로의 공통 목 — 퀴즈셋 조회, 제목 중복 없음, 새 카테고리 조회 */
+	/**
+	 * 수정 성공 경로의 공통 목 — 퀴즈셋 조회, 제목 중복 없음, 새 카테고리 조회, flush.
+	 * flush 는 목이라 실제 INSERT 가 일어나지 않는다 → 새로 추가한 퀴즈의 id 는 null 로 남는다.
+	 */
 	private fun givenUpdatable(quizSet: QuizSet) {
 		every { quizSetRepository.findWithCategoryAndQuizzesById(QUIZ_SET_ID) } returns quizSet
 		every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, NEW_TITLE) } returns false
 		every { categoryRepository.findById(CATEGORY_ID_3) } returns Optional.of(category(CATEGORY_ID_3, "일상회화"))
+		every { quizSetRepository.flush() } just Runs
 	}
 
 	private fun createRequest(

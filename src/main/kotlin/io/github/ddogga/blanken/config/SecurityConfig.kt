@@ -82,8 +82,8 @@ class SecurityConfig(
 
                 authorize("/admin/**", hasRole("ADMIN"))
                 authorize("/auth/**", permitAll)
-                authorize(anyRequest, permitAll )
-//                authorize(anyRequest, hasRole("USER")) // GUEST 차단 - 운영 환경에서 주석 해제 TODO: 추후 프로파일로 개발, 운영 환경 분리
+//                authorize(anyRequest, permitAll )
+                authorize(anyRequest, hasRole("USER")) // GUEST 차단 - 운영 환경에서 주석 해제 TODO: 추후 프로파일로 개발, 운영 환경 분리
             }
 
             // OAuth2 로그인 (인가 요청은 세션 대신 쿠키에 저장 - JWT 전환을 위해)

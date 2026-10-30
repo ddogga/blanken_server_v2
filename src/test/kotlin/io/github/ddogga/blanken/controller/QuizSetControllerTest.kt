@@ -56,7 +56,7 @@ class QuizSetControllerTest(
 			content = REQUEST_BODY
 		}.andExpect {
 			status { isCreated() }
-			header { string("Location", "/api/quiz-sets/$QUIZ_SET_ID") }
+			header { string("Location", "/blanken/api/quiz-sets/$QUIZ_SET_ID") }
 			jsonPath("$.id") { value(QUIZ_SET_ID) }
 			jsonPath("$.title") { value(TITLE) }
 			jsonPath("$.ownerNickname") { value(NICKNAME) }

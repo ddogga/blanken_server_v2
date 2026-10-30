@@ -202,6 +202,7 @@ class QuizControllerTest(
         sentence = sentence,
         answerWord = answerWord,
         hint = hint,
+        orderIndex = 0,
     )
 
     companion object {
