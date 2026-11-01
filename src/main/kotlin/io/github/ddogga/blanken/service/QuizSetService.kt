@@ -2,6 +2,7 @@ package io.github.ddogga.blanken.service
 
 import io.github.ddogga.blanken.domain.quiz.Category
 import io.github.ddogga.blanken.domain.quiz.Quiz
+import io.github.ddogga.blanken.domain.quiz.QuizRevision
 import io.github.ddogga.blanken.domain.quiz.QuizSet
 import io.github.ddogga.blanken.domain.quiz.QuizSetOrderEnum
 import io.github.ddogga.blanken.domain.quiz.Visibility
@@ -17,6 +18,7 @@ import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.CategoryRepository
+import io.github.ddogga.blanken.repository.QuizRevisionRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
 import io.github.ddogga.blanken.repository.UserRepository
 import org.springframework.data.domain.Pageable
@@ -30,6 +32,7 @@ class QuizSetService(
     private val quizSetRepository: QuizSetRepository,
     private val userRepository: UserRepository,
     private val categoryRepository: CategoryRepository,
+    private val quizRevisionRepository: QuizRevisionRepository
 ) {
 
     @Transactional
@@ -71,23 +74,31 @@ class QuizSetService(
             if (it.id !in newQuizIds) quizSet.removeQuiz(it)
         }
 
-        // quiz update
+        // quiz update / create
+        val addedQuizzes = mutableListOf<Quiz>()
         request.quizzes.forEachIndexed { index, dto ->
+
             if (dto.id != null) {
-                (existQuizMap[dto.id] ?: throw QuizNotFoundException(dto.id))
-                    .update(dto)
+                val quiz = existQuizMap[dto.id] ?: throw QuizNotFoundException(dto.id)
+                val contentChanged = quiz.isContentChangedBy(dto)   // update 전에 비교해야 한다
+                quiz.update(dto)
+                if (contentChanged) saveRevision(quiz)
             } else {
-                quizSet.addQuiz(Quiz(
+                val quiz = Quiz(
                     sentence = dto.sentence,
                     answers = dto.answers,
                     hint = dto.hint,
                     orderIndex = dto.orderIndex,
                     translation = dto.translation,
-                ))
+                )
+                quizSet.addQuiz(quiz)
+                addedQuizzes += quiz
             }
         }
 
         quizSetRepository.flush()
+
+        addedQuizzes.forEach(::saveRevision)
 
         return QuizSetDetailResponse.from(quizSet)
     }
@@ -115,10 +126,6 @@ class QuizSetService(
         return QuizSetDetailResponse.from(quizSet)
     }
 
-
-
-
-
     fun getUserQuizSets(userId: Long, orderEnum: QuizSetOrderEnum, pageable: Pageable
     ): PageResponse<QuizSetResponse> =
         PageResponse.from(
@@ -135,6 +142,10 @@ class QuizSetService(
             throw QuizSetTitleDuplicationException(title)
         }
 
+    }
+
+    private fun saveRevision(quiz: Quiz) {
+        quizRevisionRepository.save(QuizRevision.of(quiz))
     }
 
 

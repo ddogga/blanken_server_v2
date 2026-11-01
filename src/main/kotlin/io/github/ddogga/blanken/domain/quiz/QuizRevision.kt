@@ -49,4 +49,15 @@ class QuizRevision(
     @Column(name = "created_at", nullable = false, updatable = false)
     lateinit var createdAt: Instant
         protected set
+
+    companion object {
+
+        fun of(quiz: Quiz): QuizRevision = QuizRevision(
+            quizId = requireNotNull(quiz.id) { "저장되지 않은 Quiz 로는 리비전을 만들 수 없습니다." },
+            sentence = quiz.sentence,
+            answers = quiz.answers.toList(),
+            hint = quiz.hint,
+            translation = quiz.translation,
+        )
+    }
 }

@@ -62,6 +62,13 @@ class Quiz(
         this.translation = newQuiz.translation
 	}
 
+
+	fun isContentChangedBy(newQuiz: QuizRequest): Boolean =
+		sentence != newQuiz.sentence ||
+			answers != newQuiz.answers ||
+			hint != newQuiz.hint ||
+			translation != newQuiz.translation
+
     fun updateQuizSet(newQuizSet : QuizSet) {
         this.quizSet.removeQuiz(this)
         this.quizSet = newQuizSet
