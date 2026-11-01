@@ -18,6 +18,7 @@ import io.github.ddogga.blanken.exception.QuizSetNotFoundException
 import io.github.ddogga.blanken.exception.QuizSetTitleDuplicationException
 import io.github.ddogga.blanken.exception.UserNotFoundException
 import io.github.ddogga.blanken.repository.CategoryRepository
+import io.github.ddogga.blanken.repository.QuizRevisionRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
 import io.github.ddogga.blanken.repository.UserRepository
 import io.mockk.Runs
@@ -49,7 +50,8 @@ class QuizSetServiceTest {
 	private val quizSetRepository = mockk<QuizSetRepository>()
 	private val userRepository = mockk<UserRepository>()
 	private val categoryRepository = mockk<CategoryRepository>()
-	private val quizSetService = QuizSetService(quizSetRepository, userRepository, categoryRepository)
+	private val quizRevisionRepository = mockk<QuizRevisionRepository>()
+	private val quizSetService = QuizSetService(quizSetRepository, userRepository, categoryRepository, quizRevisionRepository)
 
 	@Test
 	fun `퀴즈셋을_정상적으로_생성한다`() {
@@ -273,7 +275,7 @@ class QuizSetServiceTest {
 	}
 
 	/**
-	 * 수정 성공 경로의 공통 목 — 퀴즈셋 조회, 제목 중복 없음, 새 카테고리 조회, flush.
+	 * 수정 성공 경로의 공통 목 — 퀴즈셋 조회, 제목 중복 없음, 새 카테고리 조회, flush, 리비전 저장.
 	 * flush 는 목이라 실제 INSERT 가 일어나지 않는다 → 새로 추가한 퀴즈의 id 는 null 로 남는다.
 	 */
 	private fun givenUpdatable(quizSet: QuizSet) {
@@ -281,6 +283,8 @@ class QuizSetServiceTest {
 		every { quizSetRepository.existsByOwnerIdAndTitle(OWNER_ID, NEW_TITLE) } returns false
 		every { categoryRepository.findById(CATEGORY_ID_3) } returns Optional.of(category(CATEGORY_ID_3, "일상회화"))
 		every { quizSetRepository.flush() } just Runs
+		// 퀴즈 내용이 바뀌면 스냅샷을 저장한다 (반환값은 쓰지 않으므로 받은 엔티티를 그대로 돌려준다)
+		every { quizRevisionRepository.save(any()) } answers { firstArg() }
 	}
 
 	private fun createRequest(
