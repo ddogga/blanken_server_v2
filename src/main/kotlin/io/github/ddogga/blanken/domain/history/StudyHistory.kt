@@ -1,33 +1,32 @@
 package io.github.ddogga.blanken.domain.history
 
-import io.github.ddogga.blanken.domain.user.User
-import io.github.ddogga.blanken.domain.quiz.QuizSet
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
-import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.math.BigDecimal
 import java.time.Instant
 
 
 @Entity
-@Table(name = "study_history")
+@Table(name =
+    "study_history",
+    uniqueConstraints = [
+        UniqueConstraint(name = "uk_study_history_user_quiz_set", columnNames = ["user_id", "quiz_set_id"])
+    ]
+)
 class StudyHistory(
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "user_id", nullable = false)
-	var user: User,
+    @Column(name = "user_id")
+	val userId: Long?,
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "quiz_set_id", nullable = false)
-	var quizSet: QuizSet,
+    @Column(name = "quiz_set_id")
+	val quizSetId: Long?,
 
     @Column(name = "score", nullable = false)
 	var score: BigDecimal,

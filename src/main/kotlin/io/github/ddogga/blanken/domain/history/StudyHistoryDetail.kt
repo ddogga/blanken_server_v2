@@ -1,6 +1,6 @@
 package io.github.ddogga.blanken.domain.history
 
-import io.github.ddogga.blanken.domain.quiz.Quiz
+import io.github.ddogga.blanken.domain.quiz.QuizRevision
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -17,14 +17,14 @@ import jakarta.persistence.UniqueConstraint
 @Table(name =
     "study_history_detail",
     uniqueConstraints = [
-        UniqueConstraint(name = "uk_study_history_detail_quiz_history", columnNames = ["quiz_id", "history_id"])
+        UniqueConstraint(name = "uk_study_history_detail_revision_history", columnNames = ["revision_id", "history_id"])
     ]
 )
 class StudyHistoryDetail(
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-	@JoinColumn(name = "quiz_id", nullable = false)
-	var quiz: Quiz,
+	@JoinColumn(name = "revision_id", nullable = false)
+	val revision: QuizRevision,
 
     @Column(name = "gave_up", nullable = false)
 	var gaveUp: Boolean = false,
