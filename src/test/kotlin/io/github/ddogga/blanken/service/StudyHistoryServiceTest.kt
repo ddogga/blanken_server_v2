@@ -3,15 +3,18 @@ package io.github.ddogga.blanken.service
 import io.github.ddogga.blanken.domain.OauthProvider
 import io.github.ddogga.blanken.domain.quiz.Category
 import io.github.ddogga.blanken.domain.quiz.Quiz
+import io.github.ddogga.blanken.domain.quiz.QuizRevision
 import io.github.ddogga.blanken.domain.quiz.QuizSet
 import io.github.ddogga.blanken.domain.user.User
 import io.github.ddogga.blanken.domain.user.UserRole
 import io.github.ddogga.blanken.domain.user.UserStatus
 import io.github.ddogga.blanken.domain.quiz.Visibility
-import io.github.ddogga.blanken.dto.history.StudyHistoryDetailRequest
 import io.github.ddogga.blanken.dto.history.StudyHistoryRequest
 import io.github.ddogga.blanken.repository.CategoryRepository
+import io.github.ddogga.blanken.exception.ErrorCode
+import io.github.ddogga.blanken.exception.QuizRevisionNotFoundException
 import io.github.ddogga.blanken.repository.QuizRepository
+import io.github.ddogga.blanken.repository.QuizRevisionRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
 import io.github.ddogga.blanken.repository.StudyHistoryRepository
 import io.github.ddogga.blanken.repository.UserRepository
@@ -26,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 
@@ -39,6 +43,7 @@ class StudyHistoryServiceTest(
     @Autowired private val categoryRepository: CategoryRepository,
     @Autowired private val quizRepository: QuizRepository,
     @Autowired private val quizSetRepository: QuizSetRepository,
+    @Autowired private val quizRevisionRepository: QuizRevisionRepository,
     @Autowired private val studyHistoryRepository: StudyHistoryRepository,
     @Autowired private val studyHistoryService: StudyHistoryService,
     @Autowired private val entityManager: EntityManager,
@@ -46,8 +51,8 @@ class StudyHistoryServiceTest(
 
     private var ownerId = 0L
     private var quizSetId = 0L
-    private var quizId1 = 0L
-    private var quizId2 = 0L
+    private var revisionId1 = 0L
+    private var revisionId2 = 0L
     private lateinit var category: Category
     private lateinit var owner: User
 
@@ -60,10 +65,13 @@ class StudyHistoryServiceTest(
         val quizzes = quizzes().onEach { quizSet.addQuiz(it) }
         val savedQuizzes = quizRepository.saveAll(quizzes)
 
+        // 퀴즈 생성 시 리비전을 만드는 로직이 아직 없으므로, 학습 세션이 들고 있을 스냅샷을 직접 만든다.
+        val revisions = quizRevisionRepository.saveAll(savedQuizzes.map { revisionOf(it) })
+
         ownerId = owner.id!!
         quizSetId = quizSet.id!!
-        quizId1 = savedQuizzes[0].id!!
-        quizId2 = savedQuizzes[1].id!!
+        revisionId1 = revisions[0].id!!
+        revisionId2 = revisions[1].id!!
     }
 
 
@@ -80,24 +88,22 @@ class StudyHistoryServiceTest(
         assertEquals(CORRECT_COUNT, response.correctCount)
         assertEquals(BigDecimal("100.00"), response.score)
 
-        // 1차 캐시를 비워 DB 에 실제로 적재됐는지 본다 — cascade 만 믿지 않는다.
+        assertTrue(response.wrongQuizzes.isEmpty())
+
+        // 1차 캐시를 비워 DB 에 실제로 적재됐는지 본다.
         entityManager.flush()
         entityManager.clear()
 
         val saved = studyHistoryRepository.findById(response.id).orElseThrow()
-        assertEquals(2, saved.details.size)
-        assertEquals(setOf(quizId1, quizId2), saved.details.map { it.quiz.id }.toSet())
-        assertTrue(saved.details.none { it.gaveUp })
+        assertEquals(TITLE, saved.quizSetTitle)
+        assertTrue(saved.wrongQuizzes.isEmpty())
     }
 
     @Test
-    fun `포기한_문제는_오답으로_기록되고_점수에_반영된다`() {
+    fun `포기한_문제는_오답_리비전으로_기록되고_점수에_반영된다`() {
         val request = historyRequest(
             correctCount = 1,
-            details = listOf(
-                StudyHistoryDetailRequest(quizId = quizId1, gaveUp = false),
-                StudyHistoryDetailRequest(quizId = quizId2, gaveUp = true),
-            ),
+            wrongRevisionIds = listOf(revisionId2),
         )
 
         // when
@@ -105,12 +111,31 @@ class StudyHistoryServiceTest(
 
         // then
         assertEquals(BigDecimal("50.00"), response.score)
+        assertEquals(listOf(revisionId2), response.wrongQuizzes.map { it.id })
 
+        // 조인 테이블(study_history_wrong_revision)에 실제로 들어갔는지 1차 캐시를 비우고 다시 읽는다.
         entityManager.flush()
         entityManager.clear()
 
         val saved = studyHistoryRepository.findById(response.id).orElseThrow()
-        assertEquals(setOf(quizId2), saved.details.filter { it.gaveUp }.map { it.quiz.id }.toSet())
+        assertEquals(listOf(revisionId2), saved.wrongQuizzes.map { it.id })
+    }
+
+    @Test
+    fun `존재하지_않는_리비전이_오답에_있으면_QUIZ_REVISION_NOT_FOUND_예외를_던진다`() {
+        val request = historyRequest(
+            correctCount = 0,
+            wrongRevisionIds = listOf(revisionId1, MISSING_REVISION_ID),
+        )
+
+        // when
+        val exception = assertFailsWith<QuizRevisionNotFoundException> {
+            studyHistoryService.create(request)
+        }
+
+        // then — 없는 id 만 골라서 알린다 (있는 revisionId1 은 포함되지 않는다)
+        assertEquals(ErrorCode.QUIZ_REVISION_NOT_FOUND, exception.errorCode)
+        assertEquals(setOf(MISSING_REVISION_ID), exception.revisionIds.toSet())
     }
 
 
@@ -119,20 +144,23 @@ class StudyHistoryServiceTest(
         quizSetId: Long = this.quizSetId,
         totalCount: Int = TOTAL_COUNT,
         correctCount: Int = CORRECT_COUNT,
-        details: List<StudyHistoryDetailRequest> = defaultDetails(),
+        wrongRevisionIds: List<Long> = emptyList(),
     ): StudyHistoryRequest =
         StudyHistoryRequest(
             userId = userId,
             quizSetId = quizSetId,
             totalCount = totalCount,
             correctCount = correctCount,
-            details = details,
+            wrongRevisionIds = wrongRevisionIds,
         )
 
-    private fun defaultDetails(): List<StudyHistoryDetailRequest> =
-        listOf(
-            StudyHistoryDetailRequest(quizId = quizId1, gaveUp = false),
-            StudyHistoryDetailRequest(quizId = quizId2, gaveUp = false),
+    private fun revisionOf(quiz: Quiz): QuizRevision =
+        QuizRevision(
+            quizId = quiz.id,
+            sentence = quiz.sentence,
+            answers = quiz.answers,
+            hint = quiz.hint,
+            translation = quiz.translation,
         )
 
     private fun user(): User =
@@ -182,6 +210,7 @@ class StudyHistoryServiceTest(
         private const val TOTAL_COUNT = 2
         private const val CORRECT_COUNT = 2
         private const val PROVIDER_ID = "122"
+        private const val MISSING_REVISION_ID = 999_999L
     }
 
 }

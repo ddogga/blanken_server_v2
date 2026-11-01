@@ -3,6 +3,8 @@ package io.github.ddogga.blanken.controller
 import com.ninjasquad.springmockk.MockkBean
 import io.github.ddogga.blanken.config.TestSecurityConfig
 import io.github.ddogga.blanken.dto.history.StudyHistoryResponse
+import io.github.ddogga.blanken.dto.quiz.QuizRevisionResponse
+import io.github.ddogga.blanken.exception.QuizRevisionNotFoundException
 import io.github.ddogga.blanken.service.StudyHistoryService
 import io.mockk.every
 import org.springframework.http.MediaType
@@ -48,41 +50,45 @@ class StudyHistoryControllerTest (
             jsonPath("$.score") { value(SCORE.toDouble()) }
             jsonPath("$.totalCount") { value(TOTAL_COUNT) }
             jsonPath("$.correctCount") { value(CORRECT_COUNT) }
+            jsonPath("$.wrongQuizzes.length()") { value(2) }
+            jsonPath("$.wrongQuizzes[0].id") { value(REVISION_ID_1) }
+            jsonPath("$.wrongQuizzes[0].answers[0]") { value(ANSWER) }
+            jsonPath("$.wrongQuizzes[1].id") { value(REVISION_ID_2) }
         }
     }
 
     @Test
-    fun `400_문제별_결과_수와_푼_문제_수_불일치로_학습_히스토리_생성_실패`() {
+    fun `400_오답_수와_맞힌_수의_합이_푼_문제_수와_불일치로_학습_히스토리_생성_실패`() {
 
-        // when & then
+        // when & then — 오답 1 + 맞힘 8 = 9 ≠ 푼 문제 10
         mockMvc.post("/api/study-histories") {
             contentType = MediaType.APPLICATION_JSON
-            content = BAD_REQUEST_BODY_1
+            content = COUNT_MISMATCH_REQUEST_BODY
         }.andExpect {
             status { isBadRequest() }
             jsonPath("$.code") { value("C001") }
             jsonPath("$.message") { value("입력값이 올바르지 않습니다.") }
-            jsonPath("$.fieldErrors[0].field") { value("detailCountConsistent") }
-            jsonPath("$.fieldErrors[0].message") { value("문제별 결과 수가 푼 문제 수와 일치해야 합니다.") }
+            jsonPath("$.fieldErrors[0].field") { value("totalCountConsistent") }
+            jsonPath("$.fieldErrors[0].message") { value("틀린 퀴즈 수와 맞힌 문제수의 합이 푼 문제수와 일치해야 합니다.") }
         }
     }
 
     @Test
-    fun `400_맞은_개수_풀이를_포기하지_않은_문제수_불일치로_학습_히스토리_생성_실패`() {
+    fun `404_존재하지_않는_오답_리비전으로_학습_히스토리_생성_실패`() {
 
-        // when & then
+        // given
+        every { studyHistoryService.create(any()) } throws QuizRevisionNotFoundException(setOf(REVISION_ID_2))
+
+        // when & then — 없는 id 는 응답에 담지 않는다 (진단용으로 로그에만 남는다)
         mockMvc.post("/api/study-histories") {
             contentType = MediaType.APPLICATION_JSON
-            content = BAD_REQUEST_BODY_2
+            content = REQUEST_BODY
         }.andExpect {
-            status { isBadRequest() }
-            jsonPath("$.code") { value("C001") }
-            jsonPath("$.message") { value("입력값이 올바르지 않습니다.") }
-            jsonPath("$.fieldErrors[0].field") { value("correctCountConsistent") }
-            jsonPath("$.fieldErrors[0].message") { value("맞은 개수와 풀이를 포기하지 않은 문제 수가 일치해야 합니다.") }
+            status { isNotFound() }
+            jsonPath("$.code") { value("Q006") }
+            jsonPath("$.message") { value("퀴즈 스냅샷을 찾을 수 없습니다.") }
         }
     }
-
 
 
     private fun studyHistoryResponse(): StudyHistoryResponse = StudyHistoryResponse(
@@ -92,8 +98,17 @@ class StudyHistoryControllerTest (
         quizSetTitle = QUIZ_SET_TITLE,
         score = SCORE,
         totalCount = TOTAL_COUNT,
-        correctCount = CORRECT_COUNT
+        correctCount = CORRECT_COUNT,
+        wrongQuizzes = listOf(revisionResponse(REVISION_ID_1), revisionResponse(REVISION_ID_2)),
+    )
 
+    private fun revisionResponse(id: Long): QuizRevisionResponse = QuizRevisionResponse(
+        id = id,
+        quizId = id + 100,
+        sentence = SENTENCE,
+        answers = listOf(ANSWER),
+        hint = null,
+        translation = TRANSLATION,
     )
 
     companion object {
@@ -104,65 +119,33 @@ class StudyHistoryControllerTest (
         private val SCORE = BigDecimal("80.00")
         private const val TOTAL_COUNT = 10
         private const val CORRECT_COUNT = 8
-        private const val REQUEST_BODY = """                                                                                                                                                                 
-              {                                                                                                                                                                                                
-                "userId": $USER_ID,                                                                                                                                                                            
-                "quizSetId": $QUIZ_SET_ID,                                                                                                                                                                     
-                "totalCount": $TOTAL_COUNT,                                                                                                                                                                    
-                "correctCount": $CORRECT_COUNT,                                                                                                                                                                
-                "details": [                                                                                                                                                                                   
-                  { "quizId": 1,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 2,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 3,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 4,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 5,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 6,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 7,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 8,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 9,  "gaveUp": true  },                                                                                                                                                           
-                  { "quizId": 10, "gaveUp": true  }                                                                                                                                                            
-                ]                                                                                                                                                                                              
-              }                                                                                                                                                                                                
-              """
-        private const val BAD_REQUEST_BODY_1 = """                                                                                                                                                                 
-              {                                                                                                                                                                                                
-                "userId": $USER_ID,                                                                                                                                                                            
-                "quizSetId": $QUIZ_SET_ID,                                                                                                                                                                     
-                "totalCount": $TOTAL_COUNT,                                                                                                                                                                    
-                "correctCount": $CORRECT_COUNT,                                                                                                                                                                
-                "details": [                                                                                                                                                                                   
-                  { "quizId": 1,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 2,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 3,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 4,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 5,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 6,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 7,  "gaveUp": false },
-                  { "quizId": 8,  "gaveUp": false }
-                ]                                                                                                                                                                                              
-              }                                                                                                                                                                                                
-              """
-        private const val BAD_REQUEST_BODY_2 = """                                                                                                                                                                 
-              {                                                                                                                                                                                                
-                "userId": $USER_ID,                                                                                                                                                                            
-                "quizSetId": $QUIZ_SET_ID,                                                                                                                                                                     
-                "totalCount": $TOTAL_COUNT,                                                                                                                                                                    
-                "correctCount": $CORRECT_COUNT,                                                                                                                                                                
-                "details": [                                                                                                                                                                                   
-                  { "quizId": 1,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 2,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 3,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 4,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 5,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 6,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 7,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 8,  "gaveUp": false },                                                                                                                                                           
-                  { "quizId": 9,  "gaveUp": false  },                                                                                                                                                           
-                  { "quizId": 10, "gaveUp": true  }                                                                                                                                                            
-                ]                                                                                                                                                                                               
-              }                                                                                                                                                                                                
+        private const val REVISION_ID_1 = 11L
+        private const val REVISION_ID_2 = 12L
+        private const val SENTENCE = "She decided to {{}} the meeting until next week."
+        private const val ANSWER = "postpone"
+        private const val TRANSLATION = "그녀는 회의를 다음 주로 미루기로 했다."
+
+        /** 오답 2 + 맞힘 8 = 푼 문제 10. 오답은 학습 세션이 들고 있던 리비전 id 다. */
+        private const val REQUEST_BODY = """
+              {
+                "userId": $USER_ID,
+                "quizSetId": $QUIZ_SET_ID,
+                "totalCount": $TOTAL_COUNT,
+                "correctCount": $CORRECT_COUNT,
+                "wrongRevisionIds": [$REVISION_ID_1, $REVISION_ID_2]
+              }
               """
 
+        /** 오답 1 + 맞힘 8 = 9 ≠ 푼 문제 10 */
+        private const val COUNT_MISMATCH_REQUEST_BODY = """
+              {
+                "userId": $USER_ID,
+                "quizSetId": $QUIZ_SET_ID,
+                "totalCount": $TOTAL_COUNT,
+                "correctCount": $CORRECT_COUNT,
+                "wrongRevisionIds": [$REVISION_ID_1]
+              }
+              """
     }
 
 }
