@@ -1,7 +1,10 @@
 package io.github.ddogga.blanken.dto.history
 
 import com.fasterxml.jackson.annotation.JsonIgnore
-import io.github.ddogga.blanken.domain.history.StudyHistory
+import io.github.ddogga.blanken.dto.quiz.QuizRequest
+import io.github.ddogga.blanken.dto.quiz.QuizRevisionRequest
+import io.github.ddogga.blanken.dto.quiz.QuizRevisionResponse
+import io.github.ddogga.blanken.dto.quiz.QuizSetResponse
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.Valid
 import jakarta.validation.constraints.AssertTrue
@@ -30,20 +33,14 @@ data class StudyHistoryRequest(
     @field:PositiveOrZero(message = "맞힌 문제 수는 0 이상이어야 합니다.")
     val correctCount: Int,
 
-    @field:Schema(description = "문제별 결과")
-    @field:NotEmpty(message = "문제별 결과는 최소 1건이어야 합니다.")
+    @field:Schema(description = "틀린 퀴즈의 리비전 ID 목록 — 학습 세션에 담긴 스냅샷 id", example = "[12, 57]")
     @field:Valid
-    val details: List<StudyHistoryDetailRequest>,
+    val wrongRevisionIds: List<Long>,
 ) {
-    @get:AssertTrue(message = "문제별 결과 수가 푼 문제 수와 일치해야 합니다.")
+    @get:AssertTrue(message = "틀린 퀴즈 수와 맞힌 문제수의 합이 푼 문제수와 일치해야 합니다.")
     @get:JsonIgnore // Swagger 및 JSON 직렬화 제외
-    val isDetailCountConsistent: Boolean
-        get() = details.size == totalCount
-
-    @get:AssertTrue(message = "맞은 개수와 풀이를 포기하지 않은 문제 수가 일치해야 합니다.")
-    @get:JsonIgnore // Swagger 및 JSON 직렬화 제외
-    val isCorrectCountConsistent: Boolean
-        get() = details.count { !it.gaveUp } == correctCount
+    val isTotalCountConsistent: Boolean
+        get() = wrongRevisionIds.size + correctCount == totalCount
 }
 
 @Schema(description = "학습 히스토리 응답")
@@ -69,18 +66,10 @@ data class StudyHistoryResponse(
 
     @field:Schema(description = "맞힌 문제 수", example = "8")
     val correctCount: Int,
-) {
-    companion object {
-        fun from(studyHistory: StudyHistory): StudyHistoryResponse = StudyHistoryResponse(
-            id = requireNotNull(studyHistory.id) {"저장되지 않은 StudyHistory는 응답으로 변환할 수 없습니다."},
-            userId = requireNotNull(studyHistory.user.id) {"저장되지 않은 User는 응답으로 변환할 수 없습니다."},
-            quizSetId = requireNotNull(studyHistory.quizSet.id) {"저장되지 않은 QuizSet은 응답으로 변환할 수 없습니다."},
-            quizSetTitle = studyHistory.quizSet.title,
-            score = studyHistory.score,
-            totalCount = studyHistory.totalCount,
-            correctCount = studyHistory.correctCount,
-        )
-    }
-}
+
+    @field:Schema(description = "틀린 퀴즈 목록")
+    val wrongQuizzes: List<QuizRevisionResponse>,
+
+    )
 
 

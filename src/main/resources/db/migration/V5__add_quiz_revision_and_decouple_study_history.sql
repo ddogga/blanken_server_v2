@@ -16,7 +16,7 @@ CREATE TABLE public.quiz_revision (
 );
 
 -- 기존 퀴즈마다 현재 내용으로 첫 스냅샷을 만든다.
--- 학습 기록 상세가 리비전을 가리키므로, 한 번도 수정되지 않은 퀴즈도 가리킬 리비전이 있어야 한다.
+-- 학습 기록의 오답 목록이 리비전을 가리키므로, 한 번도 수정되지 않은 퀴즈도 가리킬 리비전이 있어야 한다.
 INSERT INTO public.quiz_revision (quiz_id, sentence, answers, hint, translation, created_at)
 SELECT id, sentence, answers, hint, translation, now()
 FROM public.quiz;
@@ -38,27 +38,40 @@ ALTER TABLE public.study_history
     ADD CONSTRAINT fk_study_history_quiz_set
         FOREIGN KEY (quiz_set_id) REFERENCES public.quiz_set(id) ON DELETE SET NULL;
 
+-- 퀴즈셋을 id 로만 참조하므로, 퀴즈셋이 삭제돼도 기록에 무엇을 풀었는지 남도록 제목을 함께 저장한다.
+-- 길이는 quiz_set.title 과 같다. 기존 기록은 현재 퀴즈셋 제목으로 채운 뒤 NOT NULL 로 건다
+-- (지금은 quiz_set_id 가 NOT NULL FK 였으므로 모든 기존 기록에 대응하는 퀴즈셋이 있다).
+ALTER TABLE public.study_history ADD COLUMN quiz_set_title character varying(100);
+
+UPDATE public.study_history h
+SET quiz_set_title = qs.title
+FROM public.quiz_set qs
+WHERE qs.id = h.quiz_set_id;
+
+ALTER TABLE public.study_history ALTER COLUMN quiz_set_title SET NOT NULL;
+
 
 -- ──────────────────────────────────────────────────────────────────────────
--- 3. study_history_detail — 퀴즈(quiz_id) 대신 스냅샷(revision_id)을 가리킨다.
+-- 3. study_history_detail → study_history_wrong_revision
 --
--- 기존 행은 위에서 만든 첫 스냅샷으로 옮긴다 (퀴즈당 리비전이 정확히 하나뿐인 시점이라 1:1 로 대응한다).
+-- 문항별 결과 전체 대신 **오답(포기한) 문제의 스냅샷만** 남긴다. 맞힌 문제는 개수(correct_count)로 충분하다.
+-- 기존 상세 중 gave_up = true 인 행만 위에서 만든 첫 스냅샷으로 옮기고, 상세 테이블은 지운다.
+-- (퀴즈당 리비전이 정확히 하나뿐인 시점이라 quiz_id → revision 이 1:1 로 대응한다)
 -- ──────────────────────────────────────────────────────────────────────────
-ALTER TABLE public.study_history_detail ADD COLUMN revision_id bigint;
+CREATE TABLE public.study_history_wrong_revision (
+    history_id  bigint NOT NULL,
+    revision_id bigint NOT NULL,
+    CONSTRAINT study_history_wrong_revision_pkey PRIMARY KEY (history_id, revision_id),
+    CONSTRAINT fk_study_history_wrong_revision_history
+        FOREIGN KEY (history_id) REFERENCES public.study_history(id),
+    CONSTRAINT fk_study_history_wrong_revision_revision
+        FOREIGN KEY (revision_id) REFERENCES public.quiz_revision(id)
+);
 
-UPDATE public.study_history_detail d
-SET revision_id = r.id
-FROM public.quiz_revision r
-WHERE r.quiz_id = d.quiz_id;
+INSERT INTO public.study_history_wrong_revision (history_id, revision_id)
+SELECT d.history_id, r.id
+FROM public.study_history_detail d
+JOIN public.quiz_revision r ON r.quiz_id = d.quiz_id
+WHERE d.gave_up;
 
-ALTER TABLE public.study_history_detail ALTER COLUMN revision_id SET NOT NULL;
-
-ALTER TABLE public.study_history_detail DROP CONSTRAINT uk_study_history_detail_quiz_history;
-ALTER TABLE public.study_history_detail DROP CONSTRAINT fk_study_history_detail_quiz;
-ALTER TABLE public.study_history_detail DROP COLUMN quiz_id;
-
-ALTER TABLE public.study_history_detail
-    ADD CONSTRAINT fk_study_history_detail_revision
-        FOREIGN KEY (revision_id) REFERENCES public.quiz_revision(id);
-ALTER TABLE public.study_history_detail
-    ADD CONSTRAINT uk_study_history_detail_revision_history UNIQUE (revision_id, history_id);
+DROP TABLE public.study_history_detail;

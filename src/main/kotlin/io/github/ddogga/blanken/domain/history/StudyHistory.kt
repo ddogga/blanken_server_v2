@@ -1,12 +1,15 @@
 package io.github.ddogga.blanken.domain.history
 
-import jakarta.persistence.CascadeType
+import io.github.ddogga.blanken.domain.quiz.QuizRevision
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
+import jakarta.persistence.FetchType
 import jakarta.persistence.Id
-import jakarta.persistence.OneToMany
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.JoinTable
+import jakarta.persistence.ManyToMany
 import jakarta.persistence.Table
 import jakarta.persistence.UniqueConstraint
 import java.math.BigDecimal
@@ -28,6 +31,9 @@ class StudyHistory(
     @Column(name = "quiz_set_id")
 	val quizSetId: Long?,
 
+    @Column(name = "quiz_set_title")
+    val quizSetTitle: String,
+
     @Column(name = "score", nullable = false)
 	var score: BigDecimal,
 
@@ -44,19 +50,24 @@ class StudyHistory(
 //    @Column(name = "session_id", nullable = false, unique = true)
 //    var sessionId: String,
 
+    wrongQuizzes: List<QuizRevision> = emptyList(),
+
     @Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id")
 	val id: Long? = null,
 ) {
 
-	@OneToMany(mappedBy = "history", cascade = [CascadeType.ALL], orphanRemoval = true)
-	private val historyDetails: MutableList<StudyHistoryDetail> = mutableListOf()
+	/**
+	 * 오답(포기한) 퀴즈 목록.
+	 */
+	@ManyToMany(fetch = FetchType.LAZY)
+	@JoinTable(
+		name = "study_history_wrong_revision",
+		joinColumns = [JoinColumn(name = "history_id")],
+		inverseJoinColumns = [JoinColumn(name = "revision_id")],
+	)
+	private val mutableWrongRevisions: MutableList<QuizRevision> = wrongQuizzes.toMutableList()
 
-	val details: List<StudyHistoryDetail> get() = historyDetails
-
-	fun addDetail(detail: StudyHistoryDetail) {
-        historyDetails.add(detail)
-		detail.history = this
-	}
+	val wrongQuizzes: List<QuizRevision> get() = mutableWrongRevisions
 }
