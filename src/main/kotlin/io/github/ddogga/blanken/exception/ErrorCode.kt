@@ -36,6 +36,7 @@ enum class ErrorCode(
     QUIZ_SET_LIKE_DUPLICATION(HttpStatus.CONFLICT, "Q004", "이미 좋아요를 누른 퀴즈셋입니다."),
     QUIZ_SET_ACCESS_DENIED(HttpStatus.FORBIDDEN, "Q005", "접근 권한이 없는 퀴즈셋입니다."),
     QUIZ_REVISION_NOT_FOUND(HttpStatus.NOT_FOUND, "Q006", "퀴즈 스냅샷을 찾을 수 없습니다."),
+    NOT_ENOUGH_QUIZZES(HttpStatus.BAD_REQUEST, "Q007", "퀴즈 수가 충분하지 않습니다."),
 
 
     // Category

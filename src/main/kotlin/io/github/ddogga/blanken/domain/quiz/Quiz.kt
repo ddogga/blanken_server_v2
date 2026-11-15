@@ -2,6 +2,7 @@ package io.github.ddogga.blanken.domain.quiz
 
 import io.github.ddogga.blanken.domain.BaseTimeEntity
 import io.github.ddogga.blanken.dto.quiz.QuizRequest
+import io.github.ddogga.blanken.dto.study.QuizSnapshot
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
@@ -49,6 +50,10 @@ class Quiz(
 	@JoinColumn(name = "quiz_set_id", nullable = false)
 	lateinit var quizSet: QuizSet
 
+    @Column(name = "latest_revision_id")
+    var latestRevisionId: Long? = null
+    protected set
+
 	init {
 		validate(sentence, answers)
 	}
@@ -62,6 +67,10 @@ class Quiz(
         this.translation = newQuiz.translation
 	}
 
+    fun updateLatestRevision(revisionId: Long) {
+        this.latestRevisionId = revisionId
+    }
+
 
 	fun isContentChangedBy(newQuiz: QuizRequest): Boolean =
 		sentence != newQuiz.sentence ||
@@ -73,6 +82,18 @@ class Quiz(
         this.quizSet.removeQuiz(this)
         this.quizSet = newQuizSet
         newQuizSet.addQuiz(this)
+    }
+
+    fun toSnapshot(): QuizSnapshot {
+
+        return QuizSnapshot(
+            quizId = id!!,
+            revisionId = latestRevisionId!!,
+            sentence = sentence,
+            answers = answers,
+            translation = translation,
+            hint = hint
+        )
     }
 
 

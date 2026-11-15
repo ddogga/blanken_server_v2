@@ -94,4 +94,8 @@ class QuizSet(
     fun updateCategory(newCategory: Category) {
         this.category = newCategory
     }
+
+    companion object {
+        const val MIN_STUDY_QUIZ_COUNT = 5
+    }
 }

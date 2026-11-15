@@ -59,6 +59,8 @@ dependencies {
 	annotationProcessor("org.projectlombok:lombok")
 	testImplementation("org.springframework.boot:spring-boot-starter-webmvc-test")
 
+    implementation("tools.jackson.module:jackson-module-kotlin")
+
     // health 체크 엔드 포인트 추가 - 무중단 배포 확인용
     implementation("org.springframework.boot:spring-boot-starter-actuator")
 

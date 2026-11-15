@@ -11,3 +11,9 @@ class QuizSetLikeDuplicationException(val quizSetId: Long) :
 
 class QuizSetAccessDeniedException(val quizSetId: Long) :
         BusinessException(ErrorCode.QUIZ_SET_ACCESS_DENIED, "접근 권한이 없는 퀴즈셋입니다. (id=$quizSetId)")
+
+class NotEnoughQuizzesException(
+    val quizSetId: Long,
+    val required: Int,
+    val actual: Int,
+) : BusinessException(ErrorCode.NOT_ENOUGH_QUIZZES,"퀴즈가 $required 개 이상인 퀴즈셋만 학습 가능합니다. 현재 퀴즈 개수 : $actual (id=$quizSetId)")

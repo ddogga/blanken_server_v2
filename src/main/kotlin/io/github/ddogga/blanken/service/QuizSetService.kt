@@ -145,7 +145,8 @@ class QuizSetService(
     }
 
     private fun saveRevision(quiz: Quiz) {
-        quizRevisionRepository.save(QuizRevision.of(quiz))
+        val quizRevision = quizRevisionRepository.save(QuizRevision.of(quiz))
+        quiz.updateLatestRevision(quizRevision.id!!)
     }
 
 
