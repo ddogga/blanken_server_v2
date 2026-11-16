@@ -39,6 +39,12 @@ enum class ErrorCode(
     NOT_ENOUGH_QUIZZES(HttpStatus.BAD_REQUEST, "Q007", "퀴즈 수가 충분하지 않습니다."),
 
 
+    // Study Session
+    STUDY_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "S001", "학습 세션을 찾을 수 없습니다."),
+    STUDY_SESSION_MISMATCH(HttpStatus.CONFLICT, "S002", "학습 세션이 교체 되었습니다."),
+    QUIZ_NOT_IN_SESSION(HttpStatus.BAD_REQUEST, "S003", "학습 세션에 포함되지 않은 quiz입니다."),
+
+
     // Category
     CATEGORY_NOT_FOUND(HttpStatus.NOT_FOUND, "G001", "카테고리를 찾을 수 없습니다."),
 

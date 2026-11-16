@@ -1,6 +1,7 @@
 package io.github.ddogga.blanken.repository
 
 import io.github.ddogga.blanken.dto.study.QuizSnapshot
+import io.github.ddogga.blanken.dto.study.SaveResultsOutcome
 import tools.jackson.module.kotlin.readValue
 import tools.jackson.databind.json.JsonMapper
 import io.github.ddogga.blanken.dto.study.StudyResult
@@ -24,6 +25,7 @@ class StudySessionRedisRepository(
 
     private val getAndExtendScript: RedisScript<List<*>> = loadScript("scripts/study-session-touch-and-get.lua")
     private val createScript: RedisScript<List<*>> = loadScript("scripts/study-session-create.lua")
+    private val saveResultsScript: RedisScript<List<*>> = loadScript("scripts/study-session-save-results.lua")
 
 
     /** 세션이 있으면 TTL을 연장하고 반환, 없으면 null */
@@ -96,6 +98,48 @@ class StudySessionRedisRepository(
             expiresAt = Instant.now().plusMillis(pttlMillis),
         )
         return StudySessionStartResult(session, created)
+    }
+
+    /**
+     * 문제별 결과를 저장하고 TTL을 연장한다.
+     * 세션 존재 여부, 세션 ID 일치 여부, 퀴즈 검증과 저장을 Lua 스크립도 하나로 처리하므로,
+     * 검증과 저장 사이에 세션이 만료 되거나 교체되는 동시성 이슈를 예방함.
+     */
+    fun saveResults(
+        userId: Long,
+        quizSetId: Long,
+        sessionId: String,
+        results: Map<Long, StudyResult>
+    ): SaveResultsOutcome {
+        require(results.isNotEmpty()) { "학습 결과가 없습니다." }
+
+        val args: List<String> = buildList {
+            add(TTL.seconds.toString())
+            add(sessionId)
+            results.forEach { (quizId, result) ->
+                add(quizId.toString())
+                add(result.name)
+            }
+        }
+
+        val reply = redisTemplate.execute(
+            saveResultsScript,
+            listOf(key(userId, quizSetId)),
+            *args.toTypedArray(), // List -> 가변 인자로 펼치기
+        ) ?: throw java.lang.IllegalStateException("Redis script returned null")
+
+        val values = reply.map { it.toString() }
+        return when (values[0]) {
+            "OK" -> SaveResultsOutcome.Saved(
+                solvedCount = values[2].toInt(),
+                totalCount = values[3].toInt(),
+                expiresAt = Instant.now().plusMillis(values[1].toLong()),
+            )
+            "NOT_FOUND" -> SaveResultsOutcome.NotFound
+            "SESSION_MISMATCH" -> SaveResultsOutcome.SessionMismatch
+            "INVALID_QUIZ" -> SaveResultsOutcome.InvalidQuiz(values[1].toLong())
+            else -> throw IllegalStateException("Unknown script status: ${values[0]}")
+        }
     }
 
 

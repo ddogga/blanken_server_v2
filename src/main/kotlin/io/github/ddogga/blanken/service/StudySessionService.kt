@@ -2,9 +2,15 @@ package io.github.ddogga.blanken.service
 
 import io.github.ddogga.blanken.domain.quiz.QuizSet
 import io.github.ddogga.blanken.domain.quiz.Visibility
+import io.github.ddogga.blanken.dto.study.SaveResultsOutcome
+import io.github.ddogga.blanken.dto.study.StudySessionProgressResponse
+import io.github.ddogga.blanken.dto.study.StudySessionResultsRequest
 import io.github.ddogga.blanken.dto.study.StudySessionStartResult
 import io.github.ddogga.blanken.exception.NotEnoughQuizzesException
+import io.github.ddogga.blanken.exception.QuizNotInSessionException
 import io.github.ddogga.blanken.exception.QuizSetNotFoundException
+import io.github.ddogga.blanken.exception.StudySessionMismatchException
+import io.github.ddogga.blanken.exception.StudySessionNotFoundException
 import io.github.ddogga.blanken.repository.QuizRepository
 import io.github.ddogga.blanken.repository.QuizSetRepository
 import io.github.ddogga.blanken.repository.StudySessionRedisRepository
@@ -55,6 +61,30 @@ class StudySessionService(
     }
 
 
+    fun saveResults(
+        userId: Long,
+        quizSetId: Long,
+        sessionId: String,
+        request: StudySessionResultsRequest,
+    ): StudySessionProgressResponse {
+        val results = request.results.associate { it.quizId to it.result }
+
+        return when (val outcome = sessionRepository.saveResults(userId, quizSetId, sessionId, results)) {
+            is SaveResultsOutcome.Saved -> StudySessionProgressResponse(
+                sessionId = sessionId,
+                solvedCount = outcome.solvedCount,
+                totalCount = outcome.totalCount,
+                completable = outcome.solvedCount == outcome.totalCount,
+                expiresAt = outcome.expiresAt,
+            )
+            SaveResultsOutcome.NotFound -> throw StudySessionNotFoundException(quizSetId)
+            SaveResultsOutcome.SessionMismatch -> throw StudySessionMismatchException(sessionId)
+            is SaveResultsOutcome.InvalidQuiz -> throw QuizNotInSessionException(outcome.quizId)
+        }
+    }
+
+
+
     private fun checkQuizSetForStudy(quizSet: QuizSet, userId: Long) {
         val isOwner = quizSet.owner.id == userId
         if (quizSet.visibility == Visibility.PRIVATE && !isOwner) {
@@ -68,6 +98,8 @@ class StudySessionService(
         return quizSetRepository.findByIdOrNull(quizSetId)
             ?: throw QuizSetNotFoundException(quizSetId)
     }
+
+
 
 
 

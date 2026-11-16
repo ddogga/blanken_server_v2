@@ -1,6 +1,8 @@
 package io.github.ddogga.blanken.dto.study
 
 import io.swagger.v3.oas.annotations.media.Schema
+import jakarta.validation.Valid
+import jakarta.validation.constraints.NotEmpty
 import java.time.Instant
 
 
@@ -114,4 +116,49 @@ data class StudySessionResponse(
         }
     }
 
+}
+
+
+@Schema(description = "학습 결과 저장 요청")
+data class StudySessionResultsRequest(
+    @field:NotEmpty
+    @field:Valid
+    @field:Schema(description = "저장할 문제별 결과 목록. 같은 quizId를 다시 보내면 마지막 값으로 덮어씀")
+    val results: List<QuizResult>,
+)
+
+
+@Schema(description = "문제 하나의 결과")
+data class QuizResult(
+    @field:Schema(description = "퀴즈 ID (세션의 quizzes에 있는 ID여야 함)", example = "12")
+    val quizId: Long,
+
+    @field:Schema(description = "결과. CORRECT = 맞힘, GAVE_UP = 포기", example = "CORRECT")
+    val result: StudyResult,
+)
+
+@Schema(description = "학습 결과 저장 응답")
+data class StudySessionProgressResponse(
+    @field:Schema(description = "세션 ID", example = "3f2b8c1e-7d4a-4e9b-a1c2-5d6e7f8a9b0c")
+    val sessionId: String,
+
+    @field:Schema(description = "결과가 저장된 문제 수", example = "7")
+    val solvedCount: Int,
+
+    @field:Schema(description = "세션의 전체 문제 수", example = "20")
+    val totalCount: Int,
+
+    @field:Schema(description = "모든 문제를 풀었으면 true. 이 값이 true면 완주 API를 호출하면 됨")
+    val completable: Boolean,
+
+    @field:Schema(description = "연장된 세션 만료 예정 시각", example = "2026-11-17T02:15:00Z")
+    val expiresAt: Instant,
+)
+
+/** 결과 저장 스크립트 결과. 성공/실패 사유를 타입으로 구분 */
+sealed interface SaveResultsOutcome {
+    data class Saved(val solvedCount: Int, val totalCount: Int, val expiresAt: Instant) : SaveResultsOutcome
+    data object NotFound : SaveResultsOutcome
+    data object SessionMismatch : SaveResultsOutcome
+    data class InvalidQuiz(val quizId: Long) : SaveResultsOutcome
 }
