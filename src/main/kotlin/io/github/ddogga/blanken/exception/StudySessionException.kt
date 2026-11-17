@@ -9,7 +9,7 @@ class NotEnoughQuizzesException(
 
 class StudySessionNotFoundException(
     val quizSetId: Long,
-) : BusinessException(ErrorCode.QUIZ_NOT_FOUND, "학습 세션을 찾을 수 없습니다. (quizSetId=$quizSetId)")
+) : BusinessException(ErrorCode.STUDY_SESSION_NOT_FOUND, "학습 세션을 찾을 수 없습니다. (quizSetId=$quizSetId)")
 
 class StudySessionMismatchException(
     val sessionId: String,
