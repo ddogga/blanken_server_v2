@@ -5,4 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface StudyHistoryRepository : JpaRepository<StudyHistory, Long>{
 
+    fun findByUserIdAndQuizSetId(userId: Long, quizSetId: Long): StudyHistory?
+
 }

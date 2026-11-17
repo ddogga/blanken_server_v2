@@ -26,6 +26,10 @@ class StudySessionRedisRepository(
     private val getAndExtendScript: RedisScript<List<*>> = loadScript("scripts/study-session-touch-and-get.lua")
     private val createScript: RedisScript<List<*>> = loadScript("scripts/study-session-create.lua")
     private val saveResultsScript: RedisScript<List<*>> = loadScript("scripts/study-session-save-results.lua")
+    private val deleteIfMatchScript: RedisScript<Long> = DefaultRedisScript<Long>().apply {
+        setLocation(ClassPathResource("scripts/study-session-delete-if-match.lua"))
+        resultType = Long::class.java
+    }
 
 
     /** 세션이 있으면 TTL을 연장하고 반환, 없으면 null */
@@ -141,6 +145,17 @@ class StudySessionRedisRepository(
             else -> throw IllegalStateException("Unknown script status: ${values[0]}")
         }
     }
+
+
+    fun deleteIfSessionMatches(userId: Long, quizSetId: Long, sessionId: String): Boolean {
+        val deleted = redisTemplate.execute(
+            deleteIfMatchScript,
+            listOf(key(userId, quizSetId)),
+            sessionId,
+        )
+        return deleted == 1L
+    }
+
 
 
     private fun loadScript(path: String): RedisScript<List<*>> =

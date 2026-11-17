@@ -18,3 +18,8 @@ class StudySessionMismatchException(
 class QuizNotInSessionException(
     val quizId: Long,
 ) : BusinessException(ErrorCode.QUIZ_NOT_IN_SESSION, "학습 세션에 포함되어 있지 않은 퀴즈 입니다. (quizId=$quizId)")
+
+class StudySessionNotCompletableException(
+    sessionId: String,
+    val unsolvedCount: Int
+) : BusinessException(ErrorCode.STUDY_SESSION_NOT_COMPLETABLE, "학습 세션이 완료되지 않았습니다. (sessionId=$sessionId, unsolved=$unsolvedCount)")

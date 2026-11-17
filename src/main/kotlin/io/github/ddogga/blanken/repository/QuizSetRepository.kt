@@ -48,4 +48,7 @@ interface QuizSetRepository : JpaRepository<QuizSet, Long>, QuizSetCustomReposit
     )
     fun cancelLikeCount(id: Long): Int
 
+
+    @Query("select s.title from QuizSet s where s.id = :quizSetId")
+    fun findTitleById(quizSetId: Long): String?
 }

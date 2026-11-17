@@ -43,6 +43,7 @@ enum class ErrorCode(
     STUDY_SESSION_NOT_FOUND(HttpStatus.NOT_FOUND, "S001", "학습 세션을 찾을 수 없습니다."),
     STUDY_SESSION_MISMATCH(HttpStatus.CONFLICT, "S002", "학습 세션이 교체 되었습니다."),
     QUIZ_NOT_IN_SESSION(HttpStatus.BAD_REQUEST, "S003", "학습 세션에 포함되지 않은 quiz입니다."),
+    STUDY_SESSION_NOT_COMPLETABLE(HttpStatus.BAD_REQUEST, "S004", "학습 세션이 완료 되지 않았습니다."),
 
 
     // Category

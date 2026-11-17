@@ -1,6 +1,5 @@
 package io.github.ddogga.blanken.controller
 
-import io.github.ddogga.blanken.dto.history.StudyHistoryRequest
 import io.github.ddogga.blanken.dto.history.StudyHistoryResponse
 import io.github.ddogga.blanken.service.StudyHistoryService
 import io.swagger.v3.oas.annotations.Operation
@@ -21,13 +20,13 @@ class StudyHistoryController(
     private val studyHistoryService: StudyHistoryService
 ) {
 
-    @Operation(summary = "학습 히스토리 생성", description = "학습 히스토리를 생성합니다.")
-    @PostMapping
-    fun create(@Valid @RequestBody request: StudyHistoryRequest)
-        : ResponseEntity<StudyHistoryResponse> {
-        val newStudyHistory = studyHistoryService.create(request)
-        return ResponseEntity.created(URI.create("/api/study-histories/${newStudyHistory.id}")).body(newStudyHistory)
-    }
+//    @Operation(summary = "학습 히스토리 생성", description = "학습 히스토리를 생성합니다.")
+//    @PostMapping
+//    fun create(@Valid @RequestBody request: StudyHistoryRequest)
+//        : ResponseEntity<StudyHistoryResponse> {
+//        val newStudyHistory = studyHistoryService.create(request)
+//        return ResponseEntity.created(URI.create("/api/study-histories/${newStudyHistory.id}")).body(newStudyHistory)
+//    }
 
 
 }

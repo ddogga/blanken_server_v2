@@ -1,9 +1,11 @@
 package io.github.ddogga.blanken.controller
 
 import io.github.ddogga.blanken.dto.auth.AuthUser
+import io.github.ddogga.blanken.dto.history.StudyHistoryResponse
 import io.github.ddogga.blanken.dto.study.StudySessionProgressResponse
 import io.github.ddogga.blanken.dto.study.StudySessionResponse
 import io.github.ddogga.blanken.dto.study.StudySessionResultsRequest
+import io.github.ddogga.blanken.service.StudyCompletionService
 import io.github.ddogga.blanken.service.StudySessionService
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.tags.Tag
@@ -23,7 +25,8 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/quiz-sets/{quizSetId}/study-sessions")
 class StudySessionController(
-    private val studySessionService: StudySessionService
+    private val studySessionService: StudySessionService,
+    private val studyCompletionService: StudyCompletionService
 ) {
 
     @PostMapping
@@ -51,5 +54,13 @@ class StudySessionController(
     ): StudySessionProgressResponse =
         studySessionService.saveResults(authUser.userId, quizSetId, sessionId, request)
 
+
+    @PostMapping("/{sessionId}/complete")
+    fun complete(
+        @AuthenticationPrincipal authUser: AuthUser,
+        @PathVariable quizSetId: Long,
+        @PathVariable sessionId: String,
+    ): StudyHistoryResponse =
+        studyCompletionService.complete(authUser.userId, quizSetId, sessionId)
 
 }
